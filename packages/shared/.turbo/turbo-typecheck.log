@@ -1,0 +1,4 @@
+
+> @zeno/shared@1.0.0 typecheck /Users/young/Desktop/ooos/zeno/packages/shared
+> tsc --noEmit
+

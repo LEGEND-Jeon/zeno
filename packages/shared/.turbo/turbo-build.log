@@ -1,0 +1,4 @@
+
+> @zeno/shared@1.0.0 build /Users/jeonseol/Downloads/zeno-main_0429/packages/shared
+> tsc -p tsconfig.json
+

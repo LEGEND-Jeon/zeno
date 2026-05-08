@@ -1,0 +1,4 @@
+
+> backend@1.0.0 build /Users/jeonseol/Downloads/zeno-main_0429/apps/backend
+> tsc -p tsconfig.json
+

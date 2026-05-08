@@ -1,0 +1,67 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Project {
+  id                String       @id @default(cuid())
+  userId            String       // Supabase auth uid (no FK - managed by Supabase Auth)
+  name              String
+  messages          Message[]
+  generations       Generation[]
+  selectedVariantId String?
+  currentRevisionId String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id])
+  role           String    // "user" | "assistant"
+  content        String    // 채팅창에 보이는 텍스트
+  mode           String?   // strategy | planning | generate | refine (assistant only)
+  interpretation Json?     // assistant only
+  execution      Json?     // assistant only (planner context 재구성용)
+  generationId   String?   // generate mode assistant message only
+  interaction    Json?     // assistant only - structured choice/button UI
+  choiceResponse Json?     // user only - selected assistant choice metadata
+  status         String    @default("completed") // pending | completed | failed
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+}
+
+model Generation {
+  id        String    @id
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id])
+  variants  Variant[]
+  createdAt DateTime  @default(now())
+}
+
+model Variant {
+  id           String     @id
+  generationId String
+  generation   Generation @relation(fields: [generationId], references: [id])
+  name         String
+  summary      String
+  brief        Json
+  project      Json
+  uiMap        Json
+  revisions    Revision[]
+  createdAt    DateTime   @default(now())
+}
+
+model Revision {
+  id           String   @id
+  variantId    String
+  variant      Variant  @relation(fields: [variantId], references: [id])
+  project      Json
+  changedFiles Json
+  messageId    String?  // 어떤 refine 메시지에서 생성됐는지
+  createdAt    DateTime @default(now())
+}

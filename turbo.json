@@ -1,0 +1,26 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    }
+  },
+  "globalEnv": [
+    "NODE_ENV",
+    "OPENAI_API_KEY",
+    "NEXT_PUBLIC_API_BASE_URL",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY"
+  ]
+}

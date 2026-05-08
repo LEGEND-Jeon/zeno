@@ -1,0 +1,4 @@
+
+> backend@1.0.0 typecheck /Users/young/Desktop/ooos/zeno/apps/backend
+> tsc --noEmit
+
