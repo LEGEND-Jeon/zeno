@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ProjectMessage } from "@zeno/shared";
+import type { ProjectMessage } from "@/shared";
 import {
   getCachedProjectMessage,
   updateProjectMessage,

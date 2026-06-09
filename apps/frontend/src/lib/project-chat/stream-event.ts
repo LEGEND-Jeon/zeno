@@ -1,7 +1,7 @@
 import {
   AssistantInteractionSchema,
   ProjectMessageStatusSchema,
-} from "@zeno/shared";
+} from "@/shared";
 import { z } from "zod";
 import type { DeferredAssistantStatus } from "./types";
 

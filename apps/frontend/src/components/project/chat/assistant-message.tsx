@@ -3,7 +3,7 @@ import type {
   ChoiceInteractionOption,
   ChoiceResponse,
   ProjectMessage,
-} from "@zeno/shared";
+} from "@/shared";
 import ZenoBadge from "@/components/home/zeno-badge";
 import AssistantChoiceInteraction from "./assistant-choice-interaction";
 import AssistantMarkdownContent from "./assistant-markdown-content";

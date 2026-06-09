@@ -1,4 +1,4 @@
-import { GeneratedProject } from "@zeno/shared";
+import { GeneratedProject } from "@/shared";
 
 type SandpackFiles = Record<
   string,

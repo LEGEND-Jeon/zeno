@@ -1,4 +1,4 @@
-import type { ProjectMessage } from "@zeno/shared";
+import type { ProjectMessage } from "@/shared";
 import AssistantStatusFooter from "./assistant-status-footer";
 import AssistantMessage, { AssistantBubble } from "./assistant-message";
 

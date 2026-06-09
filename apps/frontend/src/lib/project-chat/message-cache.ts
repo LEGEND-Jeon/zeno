@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { ProjectDetailResponse, ProjectMessage } from "@zeno/shared";
+import type { ProjectDetailResponse, ProjectMessage } from "@/shared";
 import { projectKeys } from "@/lib/project-query";
 
 export function updateProjectMessages(

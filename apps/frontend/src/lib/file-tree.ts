@@ -1,4 +1,4 @@
-import { GeneratedFile } from "@zeno/shared";
+import { GeneratedFile } from "@/shared";
 
 export type FileTreeNode =
   | {

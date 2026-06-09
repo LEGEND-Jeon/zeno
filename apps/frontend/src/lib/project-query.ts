@@ -1,4 +1,4 @@
-import type { ProjectDetailResponse } from "@zeno/shared";
+import type { ProjectDetailResponse } from "@/shared";
 import { fetchProjectDetail } from "./project-api";
 
 export const projectKeys = {

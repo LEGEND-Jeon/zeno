@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const TYPING_COMPLETE_TIMEOUT_MS = 10_000;
-import type { ProjectDetailResponse } from "@zeno/shared";
+import type { ProjectDetailResponse } from "@/shared";
 import PromptBox from "@/components/home/prompt-box";
 import SideNav from "@/components/home/side-nav";
 import ProjectMessageList from "@/components/project/chat/project-message-list";

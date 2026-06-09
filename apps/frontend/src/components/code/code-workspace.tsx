@@ -2,7 +2,7 @@
 
 import Editor from "@monaco-editor/react";
 import { buildFileTree, getLanguageFromPath } from "@/lib/file-tree";
-import { GeneratedProject } from "@zeno/shared";
+import { GeneratedProject } from "@/shared";
 import { useMemo, useState } from "react";
 import FileExplorer from "./file-explorer";
 

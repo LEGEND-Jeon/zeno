@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import type { ProjectMessage } from "@zeno/shared";
+import type { ProjectMessage } from "@/shared";
 import { useStreamingText } from "@/hooks/project/use-streaming-text";
 import type { DeferredAssistantStatus } from "@/lib/project-chat/types";
 import AssistantMarkdownContent from "./assistant-markdown-content";

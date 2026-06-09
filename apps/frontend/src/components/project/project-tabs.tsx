@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import JSZip from "jszip";
-import type { GeneratedProject, VariantBrief } from "@zeno/shared";
+import type { GeneratedProject, VariantBrief } from "@/shared";
 import type { SectionClickData } from "@/components/preview/webcontainer-preview";
 
 const WebContainerPreview = dynamic(

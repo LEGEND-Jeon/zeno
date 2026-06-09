@@ -1,4 +1,4 @@
-import type { PlanKeywordGroup } from "@zeno/shared";
+import type { PlanKeywordGroup } from "@/shared";
 
 const COLOR_MAP: Record<
   PlanKeywordGroup["color"],

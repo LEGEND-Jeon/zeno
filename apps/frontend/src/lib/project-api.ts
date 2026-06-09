@@ -8,7 +8,7 @@ import {
   type ProjectDetailResponse,
   type ProjectSubmitResponse,
   type PromptRequest,
-} from "@zeno/shared";
+} from "@/shared";
 import {
   API_BASE_URL,
   apiClient,

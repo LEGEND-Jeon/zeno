@@ -2,7 +2,7 @@ import type {
   AssistantChoiceInteraction,
   ChoiceInteractionOption,
   ChoiceResponse,
-} from "@zeno/shared";
+} from "@/shared";
 
 type AssistantChoiceInteractionProps = {
   interaction: AssistantChoiceInteraction;

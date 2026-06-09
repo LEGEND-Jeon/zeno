@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { fetchProjectDetail } from "@/lib/project-api";
-import type { ProjectDetailResponse } from "@zeno/shared";
+import type { ProjectDetailResponse } from "@/shared";
 
 const WebContainerPreview = dynamic(
   () => import("@/components/preview/webcontainer-preview"),

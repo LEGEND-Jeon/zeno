@@ -7,7 +7,7 @@ import type {
   ChoiceInteractionOption,
   ProjectDetailResponse,
   ProjectMessage,
-} from "@zeno/shared";
+} from "@/shared";
 import { useProjectAssistantStream } from "@/hooks/project/use-project-assistant-stream";
 import {
   updateProjectMessage,

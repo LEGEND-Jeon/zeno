@@ -4,7 +4,7 @@ import type {
   ChoiceResponse,
   ProjectMessage,
   Variant,
-} from "@zeno/shared";
+} from "@/shared";
 import type { DeferredAssistantStatus } from "@/lib/project-chat/types";
 import AssistantMessage from "./assistant-message";
 import AssistantStatusFooter from "./assistant-status-footer";

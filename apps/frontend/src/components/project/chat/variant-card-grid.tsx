@@ -1,4 +1,4 @@
-import type { Variant } from "@zeno/shared";
+import type { Variant } from "@/shared";
 
 type VariantCardGridProps = {
   variants: Variant[];

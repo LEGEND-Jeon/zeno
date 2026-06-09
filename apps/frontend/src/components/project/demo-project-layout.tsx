@@ -15,7 +15,7 @@ import type {
   AssistantChoiceInteraction as ChoiceInteractionData,
   ChoiceResponse,
   PlanKeywordGroup,
-} from "@zeno/shared";
+} from "@/shared";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 

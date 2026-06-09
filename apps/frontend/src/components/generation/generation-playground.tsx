@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { type Variant } from "@zeno/shared";
+import { type Variant } from "@/shared";
 import { requestGeneration } from "@/lib/project-api";
 import ProjectTabs from "../project/project-tabs";
 

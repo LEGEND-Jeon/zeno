@@ -1,4 +1,4 @@
-import type { ProjectMessage } from "@zeno/shared";
+import type { ProjectMessage } from "@/shared";
 
 export default function UserMessage({ message }: { message: ProjectMessage }) {
   return (

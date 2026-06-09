@@ -1,5 +1,5 @@
 {
-  "installCommand": "pnpm install --no-frozen-lockfile --filter frontend...",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "cd apps/frontend && pnpm build",
   "outputDirectory": "apps/frontend/.next",
   "framework": "nextjs"

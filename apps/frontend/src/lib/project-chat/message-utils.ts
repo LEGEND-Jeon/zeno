@@ -1,4 +1,4 @@
-import type { ProjectMessage } from "@zeno/shared";
+import type { ProjectMessage } from "@/shared";
 
 export function createTemporaryMessageId(role: "user" | "assistant") {
   const suffix =

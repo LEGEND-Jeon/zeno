@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { GeneratedProject } from "@zeno/shared";
+import type { GeneratedProject } from "@/shared";
 import ZenoMark from "@/components/home/zeno-mark";
 
 export interface SectionClickData {
