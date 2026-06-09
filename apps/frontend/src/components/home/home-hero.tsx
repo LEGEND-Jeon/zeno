@@ -1,132 +1,146 @@
-/* import Link from "next/link";
-import ZenoMark from "./zeno-mark";
+import PromptBox from "./prompt-box";
+import ZenoBadge from "./zeno-badge";
 
-const HomeHero = () => {
-  return (
-    <section className="relative h-screen overflow-hidden bg-[#3bf9ad] text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-10%] top-[-12%] h-[34rem] w-[34rem] rounded-full bg-emerald-400/15 blur-[160px]" />
-        <div className="absolute left-[8%] top-[18%] h-[20rem] w-[20rem] rounded-full bg-emerald-500/12 blur-[120px]" />
-        <div className="absolute right-[-8%] top-[6%] h-[44rem] w-[44rem] rounded-full bg-teal-300/20 blur-[180px]" />
-        <div className="absolute right-[4%] top-[36%] h-[24rem] w-[24rem] rounded-full bg-emerald-300/18 blur-[120px]" />
-        <div className="absolute left-1/2 top-0 h-full w-[26rem] -translate-x-1/2 bg-emerald-400/10 blur-[130px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_28%,rgba(0,0,0,0.35)_52%,rgba(0,0,0,0.86)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.55)_0%,rgba(0,0,0,0.92)_34%,rgba(0,0,0,0.96)_52%,rgba(0,0,0,0.28)_100%)]" />
-      </div>
+const SUGGESTIONS = [
+  "스킨케어 브랜드 기획",
+  "디저트 브랜드 로고",
+  "프리미엄 디퓨저 패키지",
+  "AI 스타트업 랜딩페이지",
+];
 
-      <header className="relative z-10 flex items-center justify-between px-6 pb-4 pt-6 md:px-10 md:pt-8">
-        <Link href="/" className="flex items-center gap-3">
-          <ZenoMark className="h-9 w-9" />
-          <span className="text-xl font-medium tracking-[-0.03em] text-white/90">
-            ZENO
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/85 backdrop-blur-md transition hover:bg-white/10"
-          >
-            Log In
-          </button>
-          <button
-            type="button"
-            className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-[#062a23] transition hover:bg-emerald-300"
-          >
-            회원가입
-          </button>
-        </div>
-      </header>
-
-      <div className="relative z-10 flex min-h-[calc(100vh-88px)] flex-col items-center justify-center px-6 pb-12 md:px-10">
-        <div className="flex w-full max-w-[1100px] flex-1 flex-col items-center justify-center">
-          <div className="mb-8">
-            <ZenoMark className="h-20 w-20 md:h-24 md:w-24" />
-          </div>
-
-          <h1 className="max-w-[980px] text-center text-[3.4rem] font-light leading-[0.98] tracking-[-0.08em] text-white md:text-[5.5rem]">
-            <span className="block">Start Designing</span>
-            <span className="mt-2 block">Smarter — With Zeno</span>
-          </h1>
-
-          <p className="mt-6 text-center text-sm text-white/70 md:text-base">
-            서비스 전략부터 UI까지, 디자인 자동화의 정답, Zeno
-          </p>
-
-          <div className="mt-16 w-full max-w-[1020px]">
-            <div className="relative rounded-[28px] border border-black/10 bg-white/90 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl md:p-6">
-              <textarea
-                className="h-[140px] w-full resize-none border-none bg-transparent pr-14 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400 md:h-[150px] md:text-base"
-                placeholder="무엇이든 물어보세요. Zeno가 도와드려요."
-              />
-
-              <button
-                type="button"
-                aria-label="파일 추가"
-                className="absolute bottom-5 left-5 flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-2xl leading-none text-neutral-500 shadow-sm"
-              >
-                +
-              </button>
-
-              <button
-                type="button"
-                aria-label="전송"
-                className="absolute bottom-5 right-5 flex h-11 w-11 items-center justify-center rounded-full bg-black text-lg text-white"
-              >
-                ↑
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        aria-label="info"
-        className="absolute bottom-8 right-8 z-10 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-400/10 text-xl text-white/85 shadow-[0_0_25px_rgba(16,240,180,0.18)] backdrop-blur-md"
-      >
-        i
-      </button>
-    </section>
-  );
-};
-
-export default HomeHero;
+/*
+ * Figma 메타데이터 기반 정확한 원 데이터 (frame: 684.7 × 475.8px)
+ *
+ * Ellipse 50 (주 밝은 cyan):  중심 (98.2%, -4.4%),  반지름 254px → 54vh
+ * Ellipse 52 (중간 teal):     중심  (5.8%, 102.6%), 반지름 249px → 53vh
+ * Ellipse 49 (거의 안 보임):  중심 (11.6%,  17.5%), 반지름 246px → 52vh
+ * Ellipse 48 (거의 안 보임):  중심 (44.6%,  93.7%), 반지름 208px → 44vh
+ *
+ * 배치 공식: 각 div는 inset:0(컨테이너 전체). 그라디언트 중심은 at 50% 50%.
+ * translate(X%, Y%) 로 이동 → 시각적 중심 = (50+X%, 50+Y%).
+ * 따라서 X = 목표중심X - 50, Y = 목표중심Y - 50.
+ *
+ * 애니메이션: Ellipse50·52만 이동(F1→F2 소폭→F3 대폭→F1)
  */
 
-import PromptBox from "./prompt-box";
-import ZenoMark from "./zeno-mark";
-
 const HomeHero = () => {
   return (
-    <section className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#3bf9ad] px-10">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-8%] top-[-6%] h-[26rem] w-[26rem] rounded-full bg-emerald-400/12 blur-[140px]" />
-        <div className="absolute left-[8%] top-[18%] h-[22rem] w-[22rem] rounded-full bg-emerald-500/10 blur-[120px]" />
-        <div className="absolute left-[10%] bottom-[-10%] h-[18rem] w-[18rem] rounded-full bg-green-500/12 blur-[120px]" />
-        <div className="absolute left-1/2 top-0 h-full w-[24rem] -translate-x-1/2 bg-emerald-400/8 blur-[120px]" />
-        <div className="absolute right-[-10%] top-[-2%] h-[38rem] w-[38rem] rounded-full bg-teal-200/22 blur-[180px]" />
-        <div className="absolute right-[8%] top-[42%] h-[26rem] w-[26rem] rounded-full bg-emerald-400/14 blur-[150px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.15)_30%,rgba(0,0,0,0.72)_70%,rgba(0,0,0,0.9)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.22)_0%,rgba(0,0,0,0.84)_18%,rgba(0,0,0,0.92)_48%,rgba(0,0,0,0.18)_100%)]" />
+    <section
+      className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden"
+      style={{ background: "#000000" }}
+    >
+      <style>{`
+        @keyframes blob50 {
+          from { transform: translate(48.2%, -54.4%) scale(3); }
+          to   { transform: translate(48.2%,  48.0%) scale(3); }
+        }
+        @keyframes blob52 {
+          from { transform: translate(-44.2%,  52.6%) scale(3); }
+          to   { transform: translate(-45.0%, -55.0%) scale(3); }
+        }
+      `}</style>
+
+      {/* 그라디언트 레이어 — overflow-hidden 으로 클립 */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        {/* Ellipse 49: 상단 좌측 ambient (희미), 고정 */}
+        {/* 마지막 stop: transparent 대신 동일 색상 alpha=0 → 검정 보간 방지 */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle 21.7vh at 50% 50%, rgba(54,255,218,0.12) 0%, rgba(27,160,138,0.06) 15%, rgba(54,255,218,0) 33.3%)",
+            transform: "translate(-38.4%, -32.5%) scale(3)",
+          }}
+        />
+        {/* Ellipse 48: 하단 중앙 ambient (희미), 고정 */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle 18.3vh at 50% 50%, rgba(36,210,182,0.10) 0%, rgba(18,140,122,0.05) 15%, rgba(36,210,182,0) 33.3%)",
+            transform: "translate(-5.4%, 43.7%) scale(3)",
+          }}
+        />
+        {/* Ellipse 52: 중간 teal, 하단좌측 → 상단좌측 */}
+        {/* 73vh, 6-stop 지수 감쇠, 마지막 stop = 동일 색상 alpha=0 */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle 145.5vh at 50% 50%, rgba(36,220,190,0.78) 0%, rgba(35,212,184,0.70) 2.15%, rgba(33,202,176,0.62) 4.3%, rgba(30,188,164,0.53) 6.8%, rgba(27,172,150,0.44) 9.3%, rgba(23,150,132,0.35) 12.3%, rgba(18,126,110,0.26) 15.3%, rgba(12,100,88,0.19) 18.5%, rgba(7,74,65,0.11) 21.7%, rgba(4,52,46,0.08) 24.5%, rgba(2,30,27,0.04) 27.3%, rgba(2,30,27,0.02) 30.3%, rgba(36,220,190,0) 33.3%)",
+            opacity: 0.6,
+            animation: "blob52 5s ease-in-out infinite alternate",
+            animationDelay: "-2.5s",
+          }}
+        />
+        {/* Ellipse 50: 주 밝은 cyan, 상단우측 → 하단우측 */}
+        {/* 78vh, 6-stop 지수 감쇠, 마지막 stop = 동일 색상 alpha=0 */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle 156vh at 50% 50%, rgba(54,255,218,0.92) 0%, rgba(52,246,210,0.84) 1.65%, rgba(49,234,200,0.76) 3.3%, rgba(45,218,188,0.66) 5.3%, rgba(41,200,174,0.56) 7.3%, rgba(36,178,155,0.46) 10%, rgba(29,152,133,0.35) 12.7%, rgba(21,124,108,0.26) 15.85%, rgba(13,96,84,0.16) 19%, rgba(7,68,60,0.11) 22%, rgba(3,42,37,0.06) 25%, rgba(3,42,37,0.03) 29.15%, rgba(54,255,218,0) 33.3%)",
+            opacity: 0.6,
+            animation: "blob50 5s ease-in-out infinite alternate",
+            animationDelay: "-2.5s",
+          }}
+        />
       </div>
 
-      <div className="relative z-10 flex w-full max-w-[1080px] flex-col items-center justify-center">
-        <div className="mb-9">
-          <ZenoMark className="h-14 w-14" />
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center gap-[80px]">
+        {/* Logo + heading */}
+        <div className="flex w-[770px] flex-col items-center gap-[30px]">
+          <ZenoBadge size={70} />
+
+          <div className="flex w-full flex-col items-center gap-5">
+            <div className="flex w-full flex-col items-center">
+              <p
+                className="whitespace-nowrap capitalize text-[72px] leading-normal text-white"
+                style={{ fontFamily: "var(--font-lato, 'Lato', sans-serif)" }}
+              >
+                Start designing
+              </p>
+              <div className="flex w-full items-center justify-center gap-10">
+                <p
+                  className="whitespace-nowrap capitalize text-[72px] leading-normal text-white"
+                  style={{ fontFamily: "var(--font-lato, 'Lato', sans-serif)" }}
+                >
+                  smarter
+                </p>
+                <div className="h-[2px] w-[99px] bg-white" />
+                <p
+                  className="whitespace-nowrap capitalize text-[72px] leading-normal text-white"
+                  style={{ fontFamily: "var(--font-lato, 'Lato', sans-serif)" }}
+                >
+                  with Zeno
+                </p>
+              </div>
+            </div>
+            <p className="w-full text-center text-[16px] leading-[1.3] text-white">
+              서비스 전략부터 UI까지, 디자인 자동화의 정답, Zeno
+            </p>
+          </div>
         </div>
 
-        <h1 className="text-center text-[clamp(4rem,7vw,6.25rem)] font-light leading-[0.94] tracking-[-0.07em] text-white">
-          <span className="block">Start Designing</span>
-          <span className="mt-2 block">Smarter — With Zeno</span>
-        </h1>
-
-        <p className="mt-7 text-center text-sm text-white/72">
-          서비스 전략부터 UI까지, 디자인 자동화의 정답, Zeno
-        </p>
-
-        <div className="mt-20 w-full">
+        {/* Prompt box + suggestion pills */}
+        <div className="flex flex-col items-center gap-[30px]">
           <PromptBox />
+          <div className="flex items-center gap-[10px]">
+            {SUGGESTIONS.map((text) => (
+              <button
+                key={text}
+                type="button"
+                className="flex h-[34px] items-center justify-center whitespace-nowrap rounded-[10px] bg-white/20 px-3 py-1.5 text-[14px] leading-[1.7] text-white"
+              >
+                {text}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </section>

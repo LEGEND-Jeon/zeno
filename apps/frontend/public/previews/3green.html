@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>민트 플래너</title>
+<style>
+:root {
+  --color-primary: #3ECFA0;
+  --color-primary-soft: #F0FDF9;
+  --color-primary-dark: #2BAF85;
+  --color-coral: #FF6B6B;
+  --color-green: #22C55E;
+  --color-bg: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-text: #1F2937;
+  --color-text-soft: #6B7280;
+  --color-text-mute: #9CA3AF;
+  --color-border: #F1F1EE;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--color-bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--color-text); -webkit-font-smoothing: antialiased; }
+button { font-family: inherit; }
+
+.app-wrapper { position: relative; width: 390px; max-width: 390px; height: 100vh; margin: 0 auto; overflow: hidden; background: var(--color-bg); }
+
+.screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; padding-bottom: 90px; visibility: hidden; pointer-events: none; }
+.screen.active { visibility: visible; pointer-events: auto; }
+.screen::-webkit-scrollbar { display: none; }
+
+/* Top header */
+.app-top { padding: 24px 20px 8px; display: flex; justify-content: space-between; align-items: flex-start; }
+.greet-label { font-size: 12px; color: var(--color-text-mute); font-weight: 500; margin-bottom: 4px; letter-spacing: 0.3px; }
+.greet-title { font-size: 22px; font-weight: 700; color: var(--color-text); line-height: 1.3; }
+.greet-title .accent { color: var(--color-primary); }
+.profile-circle { width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary-soft); display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(62,207,160,0.15); }
+
+/* Big date card */
+.hero-card { margin: 12px 20px 16px; padding: 18px 20px; background: linear-gradient(135deg, #3ECFA0 0%, #4FD9AD 100%); border-radius: 22px; color: #fff; box-shadow: 0 8px 24px rgba(62,207,160,0.25); position: relative; overflow: hidden; }
+.hero-card::after { content: ''; position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+.hero-card::before { content: ''; position: absolute; right: 30px; bottom: -40px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+.hero-row { display: flex; align-items: flex-end; gap: 10px; position: relative; z-index: 2; }
+.hero-date-num { font-size: 56px; font-weight: 700; line-height: 0.9; letter-spacing: -2px; }
+.hero-date-meta { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; }
+.hero-month { font-size: 13px; opacity: 0.9; font-weight: 500; }
+.hero-day { font-size: 14px; font-weight: 600; }
+.progress-row { margin-top: 16px; position: relative; z-index: 2; }
+.progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; opacity: 0.95; font-weight: 500; }
+.progress-bar { height: 6px; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: #fff; border-radius: 3px; transition: width 0.5s ease; }
+
+/* View tabs */
+.view-tabs { display: flex; margin: 0 20px 14px; background: var(--color-surface); border-radius: 14px; padding: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.view-tab { flex: 1; padding: 10px 0; border: none; background: none; font-size: 13px; font-weight: 600; color: var(--color-text-mute); border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+.view-tab.active { background: var(--color-primary); color: #fff; box-shadow: 0 2px 8px rgba(62,207,160,0.3); }
+
+/* Section header */
+.section-head { display: flex; justify-content: space-between; align-items: center; padding: 4px 20px 10px; }
+.section-title { font-size: 15px; font-weight: 700; }
+.section-meta { font-size: 12px; color: var(--color-text-mute); font-weight: 500; }
+
+/* Monthly grid */
+.month-view { padding: 0 20px; display: none; }
+.month-view.active { display: block; }
+.month-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 0 14px; }
+.month-title { font-size: 18px; font-weight: 700; }
+.month-nav { display: flex; gap: 8px; }
+.month-nav button { width: 32px; height: 32px; border-radius: 10px; border: none; background: var(--color-surface); color: var(--color-text-soft); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.cal-grid { background: var(--color-surface); border-radius: 18px; padding: 14px 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 6px; }
+.cal-weekdays div { text-align: center; font-size: 11px; font-weight: 600; color: var(--color-text-mute); padding: 6px 0; }
+.cal-weekdays div:first-child { color: var(--color-coral); }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--color-text); border-radius: 10px; cursor: pointer; position: relative; transition: background 0.15s; }
+.cal-day:hover { background: var(--color-primary-soft); }
+.cal-day.other { color: var(--color-text-mute); opacity: 0.4; }
+.cal-day.sunday { color: var(--color-coral); }
+.cal-day.today { background: var(--color-primary); color: #fff; font-weight: 700; }
+.cal-day.today:hover { background: var(--color-primary-dark); }
+.cal-dots { display: flex; gap: 2px; margin-top: 2px; min-height: 4px; }
+.cal-dots span { width: 4px; height: 4px; border-radius: 50%; }
+
+/* Weekly horizontal scroll */
+.week-view { display: none; }
+.week-view.active { display: block; }
+.week-scroll { display: flex; gap: 10px; padding: 0 20px 12px; overflow-x: auto; scroll-snap-type: x mandatory; }
+.week-scroll::-webkit-scrollbar { display: none; }
+.week-day-card { flex: 0 0 78px; background: var(--color-surface); border-radius: 16px; padding: 12px 8px; text-align: center; cursor: pointer; scroll-snap-align: start; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.week-day-card.active { background: var(--color-primary); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(62,207,160,0.3); }
+.wd-label { font-size: 11px; font-weight: 600; opacity: 0.7; margin-bottom: 4px; }
+.wd-num { font-size: 20px; font-weight: 700; line-height: 1; }
+.wd-count { font-size: 10px; margin-top: 6px; opacity: 0.8; }
+.week-day-card.active .wd-label, .week-day-card.active .wd-count { opacity: 0.95; }
+
+/* Day timeline */
+.day-view { display: none; padding: 0 20px; }
+.day-view.active { display: block; }
+.timeline { position: relative; }
+.time-block { display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start; }
+.time-label { flex: 0 0 44px; font-size: 11px; font-weight: 600; color: var(--color-text-mute); padding-top: 14px; }
+.time-content { flex: 1; }
+.time-empty { background: var(--color-surface); border: 1px dashed var(--color-border); border-radius: 12px; padding: 12px; color: var(--color-text-mute); font-size: 12px; text-align: center; }
+
+/* Schedule card */
+.sched-card { background: var(--color-surface); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); position: relative; overflow: hidden; margin-bottom: 8px; cursor: pointer; transition: transform 0.15s; }
+.sched-card:active { transform: scale(0.98); }
+.sched-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--bar-color, var(--color-primary)); }
+.sched-checkbox { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #E5E7EB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.15s; background: #fff; }
+.sched-checkbox.done { background: var(--color-primary); border-color: var(--color-primary); }
+.sched-checkbox.done::after { content: '✓'; color: #fff; font-size: 13px; font-weight: 700; }
+.sched-body { flex: 1; min-width: 0; }
+.sched-title { font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 3px; line-height: 1.3; }
+.sched-title.done { text-decoration: line-through; color: var(--color-text-mute); }
+.sched-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--color-text-mute); }
+.cat-chip { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+.cat-work { background: rgba(62,207,160,0.12); color: var(--color-primary-dark); }
+.cat-personal { background: rgba(255,107,107,0.12); color: var(--color-coral); }
+.cat-health { background: rgba(34,197,94,0.12); color: var(--color-green); }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--color-text-mute); }
+.empty-emoji { font-size: 40px; margin-bottom: 10px; }
+.empty-text { font-size: 14px; font-weight: 500; }
+
+/* Floating add button */
+.fab { position: absolute; bottom: 84px; right: 24px; width: 56px; height: 56px; border-radius: 18px; background: var(--color-primary); color: #fff; border: none; font-size: 28px; font-weight: 300; box-shadow: 0 8px 20px rgba(62,207,160,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; z-index: 50; transition: transform 0.15s; }
+.fab:active { transform: scale(0.95); }
+
+/* Tab bar */
+.tab-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 390px; display: flex; align-items: stretch; background: var(--color-surface); border-top: 1px solid var(--color-border); padding-bottom: env(safe-area-inset-bottom, 8px); z-index: 100; }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 0 8px; border: none; background: none; color: var(--color-text-mute); font-size: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; position: relative; font-weight: 500; }
+.tab-icon { font-size: 20px; line-height: 1; }
+.tab.active { color: var(--color-primary); font-weight: 700; }
+.tab.active::after { content: ''; position: absolute; top: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--color-primary); }
+.tab span { font-size: 10px; line-height: 1; }
+
+/* Todo screen */
+.todo-list { padding: 0 20px; }
+.todo-section-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 10px; }
+.todo-section-title { font-size: 14px; font-weight: 700; }
+.todo-count { font-size: 12px; color: var(--color-primary); background: var(--color-primary-soft); padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+
+/* Routine screen */
+.routine-card { background: var(--color-surface); border-radius: 16px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.routine-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.routine-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.routine-emoji { font-size: 20px; }
+.routine-streak { font-size: 11px; color: var(--color-coral); background: rgba(255,107,107,0.1); padding: 3px 8px; border-radius: 8px; font-weight: 600; }
+.routine-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.routine-day { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #F5F5F2; font-size: 10px; color: var(--color-text-mute); cursor: pointer; font-weight: 600; }
+.routine-day.done { background: var(--color-primary); color: #fff; }
+.routine-day.today { border: 2px solid var(--color-primary); }
+.routine-day-label { font-size: 9px; opacity: 0.7; }
+.routine-day-check { font-size: 12px; margin-top: 2px; }
+
+/* Bottom sheet modal */
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+.bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: var(--color-bg); border-radius: 24px 24px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 201; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); max-height: 85%; overflow-y: auto; }
+.bottom-sheet.open { transform: translateY(0); }
+.sheet-grab { width: 40px; height: 4px; background: #D1D5DB; border-radius: 2px; margin: 0 auto 16px; }
+.sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+.field { margin-bottom: 14px; }
+.field-label { font-size: 12px; font-weight: 600; color: var(--color-text-soft); margin-bottom: 6px; display: block; }
+.field input, .field textarea, .field select { width: 100%; padding: 12px 14px; border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 12px; font-size: 14px; font-family: inherit; color: var(--color-text); }
+.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--color-primary); }
+.cat-options { display: flex; gap: 8px; }
+.cat-option { flex: 1; padding: 10px; border-radius: 12px; border: 2px solid var(--color-border); background: var(--color-surface); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
+.cat-option .cat-dot { width: 8px; height: 8px; border-radius: 50%; }
+.cat-option.active { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.cat-option[data-cat="work"] .cat-dot { background: var(--color-primary); }
+.cat-option[data-cat="personal"] .cat-dot { background: var(--color-coral); }
+.cat-option[data-cat="health"] .cat-dot { background: var(--color-green); }
+.sheet-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn { flex: 1; padding: 13px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btn-primary { background: var(--color-primary); color: #fff; }
+.btn-secondary { background: var(--color-surface); color: var(--color-text-soft); border: 1px solid var(--color-border); }
+.btn-danger { background: rgba(255,107,107,0.1); color: var(--color-coral); }
+
+/* Animation entry */
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: slideUp 0.3s ease both; }
+</style>
+<style>
+h1, h2, h3, h4, h5, h6 { line-height: 1.2 !important; }
+  body, p, span, li, button, input, textarea, div { line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- HOME / CALENDAR -->
+  <section id="screen-home" class="screen active" data-section="home-screen">
+    <div class="app-top">
+      <div>
+        <div class="greet-label">오늘도 좋은 하루</div>
+        <div class="greet-title">안녕하세요 <span class="accent">🌱</span></div>
+      </div>
+      <div class="profile-circle">🐰</div>
+    </div>
+
+    <div class="hero-card">
+      <div class="hero-row">
+        <div class="hero-date-num" id="heroDay">15</div>
+        <div class="hero-date-meta">
+          <div class="hero-month" id="heroMonth">11월 2024</div>
+          <div class="hero-day" id="heroWeekday">금요일</div>
+        </div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">
+          <span>이번 주 진행률</span>
+          <span id="progressText">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
+      </div>
+    </div>
+
+    <div class="view-tabs">
+      <button class="view-tab" data-view="month" onclick="switchView('month')">월간</button>
+      <button class="view-tab active" data-view="week" onclick="switchView('week')">주간</button>
+      <button class="view-tab" data-view="day" onclick="switchView('day')">일간</button>
+    </div>
+
+    <!-- Month view -->
+    <div class="month-view" id="view-month">
+      <div class="month-header">
+        <div class="month-title" id="monthTitle">11월 2024</div>
+        <div class="month-nav">
+          <button onclick="changeMonth(-1)">‹</button>
+          <button onclick="changeMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-weekdays">
+          <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+        </div>
+        <div class="cal-days" id="calDays"></div>
+      </div>
+      <div class="section-head" style="margin-top: 18px;">
+        <div class="section-title">선택한 날의 일정</div>
+        <div class="section-meta" id="selectedDateLabel"></div>
+      </div>
+      <div id="monthSchedList"></div>
+    </div>
+
+    <!-- Week view -->
+    <div class="week-view active" id="view-week">
+      <div class="week-scroll" id="weekScroll"></div>
+      <div class="section-head">
+        <div class="section-title" id="weekSelectedLabel">오늘의 일정</div>
+        <div class="section-meta" id="weekCountLabel">0개</div>
+      </div>
+      <div style="padding: 0 20px;" id="weekSchedList"></div>
+    </div>
+
+    <!-- Day view -->
+    <div class="day-view" id="view-day">
+      <div class="section-head" style="padding: 4px 0 14px;">
+        <div class="section-title">오늘의 타임라인</div>
+        <div class="section-meta" id="dayCountLabel">0개 일정</div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <button class="fab" onclick="openSheet()">+</button>
+  </section>
+
+  <!-- TODO -->
+  <section id="screen-todo" class="screen" data-section="card-feed">
+    <div class="app-top">
+      <div>
+        <div class="greet-label">할 일</div>
+        <div class="greet-title">오늘의 <span class="accent">할 일</span></div>
+      </div>
+      <div class="profile-circle">📝</div>
+    </div>
+
+    <div class="todo-list">
+      <div class="todo-section-head">
+        <div class="todo-section-title">진행 중</div>
+        <div class="todo-count" id="todoActiveCount">0</div>
+      </div>
+      <div id="todoActiveList"></div>
+
+      <div class="todo-section-head">
+        <div class="todo-section-title">완료</div>
+        <div class="todo-count" id="todoDoneCount">0</div>
+      </div>
+      <div id="todoDoneList"></div>
+    </div>
+
+    <button class="fab" onclick="openSheet()">+</button>
+  </section>
+
+  <!-- ROUTINE -->
+  <section id="screen-routine" class="screen" data-section="card-feed">
+    <div class="app-top">
+      <div>
+        <div class="greet-label">루틴</div>
+        <div class="greet-title">꾸준한 <span class="accent">습관</span></div>
+      </div>
+      <div class="profile-circle">🌿</div>
+    </div>
+
+    <div style="padding: 0 20px;" id="routineList"></div>
+  </section>
+
+  <!-- TAB BAR -->
+  <nav class="tab-bar" data-section="tab-bar">
+    <button class="tab active" id="tab-home" onclick="switchTab('home')">
+      <span class="tab-icon">📅</span><span>캘린더</span>
+    </button>
+    <button class="tab" id="tab-todo" onclick="switchTab('todo')">
+      <span class="tab-icon">✅</span><span>할일</span>
+    </button>
+    <button class="tab" id="tab-routine" onclick="switchTab('routine')">
+      <span class="tab-icon">🌱</span><span>루틴</span>
+    </button>
+  </nav>
+
+  <!-- ADD/EDIT BOTTOM SHEET -->
+  <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-grab"></div>
+    <div class="sheet-title" id="sheetTitle">새 일정 추가</div>
+    <div class="field">
+      <label class="field-label">제목</label>
+      <input type="text" id="fieldTitle" placeholder="무엇을 할까요?">
+    </div>
+    <div class="field">
+      <label class="field-label">카테고리</label>
+      <div class="cat-options">
+        <button class="cat-option active" data-cat="work" onclick="selectCat('work')"><span class="cat-dot"></span>업무</button>
+        <button class="cat-option" data-cat="personal" onclick="selectCat('personal')"><span class="cat-dot"></span>개인</button>
+        <button class="cat-option" data-cat="health" onclick="selectCat('health')"><span class="cat-dot"></span>건강</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">날짜</label>
+      <input type="date" id="fieldDate">
+    </div>
+    <div class="field">
+      <label class="field-label">시간 (선택)</label>
+      <input type="time" id="fieldTime">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">취소</button>
+      <button class="btn btn-danger" id="deleteBtn" style="display:none;" onclick="deleteSchedule()">삭제</button>
+      <button class="btn btn-primary" onclick="saveSchedule()">저장</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== STATE ==========
+const STORAGE_KEY = 'mintPlannerData_v3';
+const ROUTINE_KEY = 'mintRoutineData_v2';
+let state = { schedules: [], selectedCat: 'work', editingId: null, currentMonth: null, selectedDate: null, weekSelected: null };
+let routines = [];
+
+const CAT_INFO = {
+  work: { label: '업무', color: '#3ECFA0', class: 'cat-work' },
+  personal: { label: '개인', color: '#FF6B6B', class: 'cat-personal' },
+  health: { label: '건강', color: '#22C55E', class: 'cat-health' }
+};
+
+const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const KOREAN_FULL_DAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+// ========== STORAGE ==========
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      state.schedules = JSON.parse(raw);
+    } else {
+      seedSchedules();
+      saveData();
+    }
+  } catch(e) { state.schedules = []; seedSchedules(); }
+}
+
+function seedSchedules() {
+  const today = new Date();
+  // 이번 주 일요일 기준으로 월~일 날짜 구하기
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay()); // 일요일
+
+  function weekDay(offset) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + offset);
+    return fmtDate(d);
+  }
+
+  const sun = weekDay(0);
+  const mon = weekDay(1);
+  const tue = weekDay(2);
+  const wed = weekDay(3);
+  const thu = weekDay(4);
+  const fri = weekDay(5);
+  const sat = weekDay(6);
+
+  const schedules = [
+    // ===== 일요일 =====
+    { id: id(), title: '아침 러닝 5km', category: 'health', date: sun, time: '07:00', done: true },
+    { id: id(), title: '비타민 복용', category: 'health', date: sun, time: '08:00', done: true },
+    { id: id(), title: '주말 브런치 (카페 오팡)', category: 'personal', date: sun, time: '10:30', done: true },
+    { id: id(), title: '가족 점심 모임', category: 'personal', date: sun, time: '12:30', done: false },
+    { id: id(), title: '주간 계획 정리', category: 'work', date: sun, time: '15:00', done: false },
+    { id: id(), title: '영화 관람 (메가박스)', category: 'personal', date: sun, time: '17:30', done: false },
+    { id: id(), title: '다음 주 스프린트 준비', category: 'work', date: sun, time: '20:00', done: false },
+
+    // ===== 월요일 =====
+    { id: id(), title: '아침 러닝 30분', category: 'health', date: mon, time: '07:00', done: true },
+    { id: id(), title: '비타민 & 영양제 복용', category: 'health', date: mon, time: '08:00', done: true },
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: mon, time: '09:00', done: true },
+    { id: id(), title: '주간 스프린트 회의', category: 'work', date: mon, time: '10:00', done: true },
+    { id: id(), title: '카페 독서 (점심)', category: 'personal', date: mon, time: '12:00', done: true },
+    { id: id(), title: '기획안 초안 작성', category: 'work', date: mon, time: '14:00', done: false },
+    { id: id(), title: '클라이언트 콜 (A사)', category: 'work', date: mon, time: '16:00', done: false },
+    { id: id(), title: '필라테스 1시간', category: 'health', date: mon, time: '19:00', done: false },
+    { id: id(), title: '마트 장보기', category: 'personal', date: mon, time: '20:30', done: false },
+
+    // ===== 화요일 =====
+    { id: id(), title: '헬스장 상체 루틴', category: 'health', date: tue, time: '07:30', done: true },
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: tue, time: '09:00', done: true },
+    { id: id(), title: '디자인 피드백 세션', category: 'work', date: tue, time: '10:30', done: true },
+    { id: id(), title: '친구 점심 약속 (강남)', category: 'personal', date: tue, time: '12:30', done: true },
+    { id: id(), title: '코드 리뷰 (PR #42)', category: 'work', date: tue, time: '14:00', done: false },
+    { id: id(), title: '마케팅팀 협업 미팅', category: 'work', date: tue, time: '15:30', done: false },
+    { id: id(), title: '저녁 요가 클래스', category: 'health', date: tue, time: '19:30', done: false },
+    { id: id(), title: '독서 30분', category: 'personal', date: tue, time: '21:30', done: false },
+
+    // ===== 수요일 =====
+    { id: id(), title: '아침 러닝 5km', category: 'health', date: wed, time: '06:30', done: true },
+    { id: id(), title: '비타민 복용', category: 'health', date: wed, time: '08:00', done: true },
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: wed, time: '09:00', done: true },
+    { id: id(), title: '주간 보고서 작성', category: 'work', date: wed, time: '10:00', done: false },
+    { id: id(), title: '점심 산책 (한강)', category: 'personal', date: wed, time: '12:00', done: false },
+    { id: id(), title: '기획 회의 (3분기 로드맵)', category: 'work', date: wed, time: '14:00', done: false },
+    { id: id(), title: '코드 리뷰 (PR #45)', category: 'work', date: wed, time: '16:00', done: false },
+    { id: id(), title: '헬스장 하체 루틴', category: 'health', date: wed, time: '18:30', done: false },
+    { id: id(), title: '가족 저녁 식사', category: 'personal', date: wed, time: '20:00', done: false },
+
+    // ===== 목요일 =====
+    { id: id(), title: '필라테스 1시간', category: 'health', date: thu, time: '07:00', done: false },
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: thu, time: '09:00', done: false },
+    { id: id(), title: '클라이언트 콜 (B사 2차)', category: 'work', date: thu, time: '10:00', done: false },
+    { id: id(), title: '카페 독서 & 노트 정리', category: 'personal', date: thu, time: '12:30', done: false },
+    { id: id(), title: '스프린트 중간 점검', category: 'work', date: thu, time: '14:00', done: false },
+    { id: id(), title: '디자인 시안 검토', category: 'work', date: thu, time: '15:30', done: false },
+    { id: id(), title: '정기 건강검진 예약', category: 'health', date: thu, time: '17:00', done: false },
+    { id: id(), title: '요가 (홈 루틴 20분)', category: 'health', date: thu, time: '20:00', done: false },
+    { id: id(), title: '영화 찜 목록 보기', category: 'personal', date: thu, time: '21:30', done: false },
+
+    // ===== 금요일 =====
+    { id: id(), title: '아침 러닝 3km', category: 'health', date: fri, time: '07:00', done: false },
+    { id: id(), title: '비타민 & 오메가3 복용', category: 'health', date: fri, time: '08:00', done: false },
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: fri, time: '09:00', done: false },
+    { id: id(), title: '주간 보고서 최종 제출', category: 'work', date: fri, time: '10:30', done: false },
+    { id: id(), title: '점심 약속 (팀 회식)', category: 'personal', date: fri, time: '12:00', done: false },
+    { id: id(), title: '스프린트 회고 미팅', category: 'work', date: fri, time: '14:00', done: false },
+    { id: id(), title: '다음 주 기획 초안 검토', category: 'work', date: fri, time: '16:00', done: false },
+    { id: id(), title: '친구들 저녁 약속 (홍대)', category: 'personal', date: fri, time: '19:00', done: false },
+    { id: id(), title: '독서 & 일기 쓰기', category: 'personal', date: fri, time: '22:00', done: false },
+
+    // ===== 토요일 =====
+    { id: id(), title: '아침 러닝 7km', category: 'health', date: sat, time: '07:30', done: false },
+    { id: id(), title: '브런치 카페 (성수)', category: 'personal', date: sat, time: '10:00', done: false },
+    { id: id(), title: '헬스장 전신 루틴', category: 'health', date: sat, time: '12:00', done: false },
+    { id: id(), title: '마트 주간 장보기', category: 'personal', date: sat, time: '14:30', done: false },
+    { id: id(), title: '카페 독서 (북클럽 리뷰)', category: 'personal', date: sat, time: '16:00', done: false },
+    { id: id(), title: '가족 저녁 식사 (집)', category: 'personal', date: sat, time: '18:30', done: false },
+    { id: id(), title: '다음 주 할 일 목록 작성', category: 'work', date: sat, time: '20:00', done: false },
+    { id: id(), title: '스트레칭 & 폼롤러', category: 'health', date: sat, time: '21:30', done: false },
+  ];
+
+  // 지난주/다음주 일부 데이터도 추가 (캘린더 풍성하게)
+  const prevMon = weekDay(-6);
+  const prevTue = weekDay(-5);
+  const prevWed = weekDay(-4);
+  const prevThu = weekDay(-3);
+  const prevFri = weekDay(-2);
+  const prevSat = weekDay(-1);
+
+  const extraSchedules = [
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: prevMon, time: '09:00', done: true },
+    { id: id(), title: '아침 러닝 5km', category: 'health', date: prevMon, time: '07:00', done: true },
+    { id: id(), title: '클라이언트 미팅 (C사)', category: 'work', date: prevMon, time: '14:00', done: true },
+    { id: id(), title: '필라테스', category: 'health', date: prevMon, time: '19:00', done: true },
+
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: prevTue, time: '09:00', done: true },
+    { id: id(), title: '디자인 피드백', category: 'work', date: prevTue, time: '11:00', done: true },
+    { id: id(), title: '점심 약속 (친구)', category: 'personal', date: prevTue, time: '12:30', done: true },
+    { id: id(), title: '헬스장', category: 'health', date: prevTue, time: '19:00', done: true },
+
+    { id: id(), title: '기획 회의', category: 'work', date: prevWed, time: '10:00', done: true },
+    { id: id(), title: '주간 보고서 작성', category: 'work', date: prevWed, time: '14:00', done: true },
+    { id: id(), title: '요가 클래스', category: 'health', date: prevWed, time: '19:30', done: true },
+    { id: id(), title: '가족 저녁', category: 'personal', date: prevWed, time: '20:30', done: true },
+
+    { id: id(), title: '스프린트 점검', category: 'work', date: prevThu, time: '10:00', done: true },
+    { id: id(), title: '코드 리뷰', category: 'work', date: prevThu, time: '14:00', done: true },
+    { id: id(), title: '정기 검진', category: 'health', date: prevThu, time: '16:00', done: true },
+    { id: id(), title: '독서 30분', category: 'personal', date: prevThu, time: '21:00', done: true },
+
+    { id: id(), title: '팀 스탠드업 미팅', category: 'work', date: prevFri, time: '09:00', done: true },
+    { id: id(), title: '보고서 최종 제출', category: 'work', date: prevFri, time: '11:00', done: true },
+    { id: id(), title: '팀 회식 (점심)', category: 'personal', date: prevFri, time: '12:30', done: true },
+    { id: id(), title: '스프린트 회고', category: 'work', date: prevFri, time: '15:00', done: true },
+    { id: id(), title: '친구 저녁 약속', category: 'personal', date: prevFri, time: '19:00', done: true },
+
+    { id: id(), title: '아침 러닝 7km', category: 'health', date: prevSat, time: '07:30', done: true },
+    { id: id(), title: '브런치 (카페 성수)', category: 'personal', date: prevSat, time: '10:30', done: true },
+    { id: id(), title: '헬스장 전신 루틴', category: 'health', date: prevSat, time: '13:00', done: true },
+    { id: id(), title: '영화 관람', category: 'personal', date: prevSat, time: '16:00', done: true },
+    { id: id(), title: '가족 저녁', category: 'personal', date: prevSat, time: '19:00', done: true },
+
+    // 다음주 데이터
+    { id: id(), title: '스프린트 킥오프', category: 'work', date: shiftDate(mon, 7), time: '10:00', done: false },
+    { id: id(), title: '아침 러닝', category: 'health', date: shiftDate(mon, 7), time: '07:00', done: false },
+    { id: id(), title: '클라이언트 미팅', category: 'work', date: shiftDate(mon, 7), time: '14:00', done: false },
+    { id: id(), title: '요가 클래스', category: 'health', date: shiftDate(tue, 7), time: '07:30', done: false },
+    { id: id(), title: '기획 회의', category: 'work', date: shiftDate(tue, 7), time: '10:30', done: false },
+    { id: id(), title: '점심 약속', category: 'personal', date: shiftDate(tue, 7), time: '12:30', done: false },
+    { id: id(), title: '코드 리뷰', category: 'work', date: shiftDate(wed, 7), time: '14:00', done: false },
+    { id: id(), title: '헬스장', category: 'health', date: shiftDate(wed, 7), time: '19:00', done: false },
+    { id: id(), title: '가족 저녁', category: 'personal', date: shiftDate(wed, 7), time: '20:00', done: false },
+  ];
+
+  state.schedules = [...schedules, ...extraSchedules];
+}
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.schedules)); }
+
+function loadRoutines() {
+  try {
+    const raw = localStorage.getItem(ROUTINE_KEY);
+    if (raw) { routines = JSON.parse(raw); return; }
+  } catch(e) {}
+  // Seed routines
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay());
+
+  function makeWeekDays(donePattern) {
+    const days = {};
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      days[fmtDate(d)] = donePattern[i] || false;
+    }
+    return days;
+  }
+
+  routines = [
+    { id: id(), emoji: '💧', title: '물 2L 마시기', streak: 14, days: makeWeekDays([true, true, true, true, false, false, false]) },
+    { id: id(), emoji: '🏃', title: '아침 러닝 30분', streak: 9, days: makeWeekDays([true, true, false, true, false, false, false]) },
+    { id: id(), emoji: '📚', title: '책 10페이지 읽기', streak: 6, days: makeWeekDays([true, true, true, false, false, false, false]) },
+    { id: id(), emoji: '🧘', title: '명상 10분', streak: 11, days: makeWeekDays([true, true, true, true, false, false, false]) },
+    { id: id(), emoji: '💊', title: '비타민 & 영양제', streak: 21, days: makeWeekDays([true, true, true, true, false, false, false]) },
+    { id: id(), emoji: '🚶', title: '만보 걷기', streak: 4, days: makeWeekDays([false, true, true, true, false, false, false]) },
+  ];
+  saveRoutines();
+}
+function saveRoutines() { localStorage.setItem(ROUTINE_KEY, JSON.stringify(routines)); }
+
+// ========== UTILS ==========
+function id() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function todayKey() { return fmtDate(new Date()); }
+function fmtDate(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function shiftDate(key, n) { const d = new Date(key); d.setDate(d.getDate()+n); return fmtDate(d); }
+function parseDate(key) { const [y,m,dd] = key.split('-').map(Number); return new Date(y, m-1, dd); }
+
+// ========== NAV ==========
+function switchTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + tab)?.classList.add('active');
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  if (tab === 'todo') renderTodo();
+  if (tab === 'routine') renderRoutines();
+}
+
+function switchView(view) {
+  document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  ['month','week','day'].forEach(v => {
+    document.getElementById('view-' + v).classList.toggle('active', v === view);
+  });
+  if (view === 'month') renderMonth();
+  if (view === 'week') renderWeek();
+  if (view === 'day') renderDay();
+}
+
+// ========== HERO ==========
+function renderHero() {
+  const now = new Date();
+  document.getElementById('heroDay').textContent = now.getDate();
+  document.getElementById('heroMonth').textContent = (now.getMonth()+1) + '월 ' + now.getFullYear();
+  document.getElementById('heroWeekday').textContent = KOREAN_FULL_DAYS[now.getDay()];
+
+  // Weekly progress
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  let total = 0, done = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(weekStart.getDate()+i);
+    const key = fmtDate(d);
+    state.schedules.forEach(s => { if (s.date === key) { total++; if (s.done) done++; } });
+  }
+  const pct = total === 0 ? 0 : Math.round(done/total*100);
+  document.getElementById('progressText').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ========== MONTH VIEW ==========
+function renderMonth() {
+  const cm = state.currentMonth;
+  document.getElementById('monthTitle').textContent = (cm.getMonth()+1) + '월 ' + cm.getFullYear();
+  const firstDay = new Date(cm.getFullYear(), cm.getMonth(), 1);
+  const lastDay = new Date(cm.getFullYear(), cm.getMonth()+1, 0);
+  const startWeekday = firstDay.getDay();
+  const totalDays = lastDay.getDate();
+  const prevLast = new Date(cm.getFullYear(), cm.getMonth(), 0).getDate();
+
+  const todayK = todayKey();
+  const cells = [];
+  // prev month tail
+  for (let i = startWeekday - 1; i >= 0; i--) {
+    cells.push({ day: prevLast - i, other: true });
+  }
+  for (let d = 1; d <= totalDays; d++) {
+    const date = new Date(cm.getFullYear(), cm.getMonth(), d);
+    cells.push({ day: d, date: fmtDate(date), weekday: date.getDay() });
+  }
+  // next month head — fill to 6 weeks (42)
+  let next = 1;
+  while (cells.length < 42) { cells.push({ day: next++, other: true }); }
+
+  const container = document.getElementById('calDays');
+  container.innerHTML = cells.map((c, i) => {
+    if (c.other) return `<div class="cal-day other">${c.day}</div>`;
+    const isToday = c.date === todayK;
+    const isSelected = c.date === state.selectedDate;
+    const daySched = state.schedules.filter(s => s.date === c.date);
+    const cats = [...new Set(daySched.map(s => s.category))];
+    const dots = cats.slice(0,3).map(cat => `<span style="background:${CAT_INFO[cat].color}"></span>`).join('');
+    const sundayClass = c.weekday === 0 ? 'sunday' : '';
+    return `<div class="cal-day ${isToday ? 'today' : ''} ${sundayClass}" onclick="selectMonthDate('${c.date}')" style="${isSelected && !isToday ? 'background: var(--color-primary-soft);' : ''}">
+      <div>${c.day}</div>
+      <div class="cal-dots">${dots}</div>
+    </div>`;
+  }).join('');
+
+  renderMonthSelected();
+}
+
+function selectMonthDate(date) {
+  state.selectedDate = date;
+  renderMonth();
+}
+
+function renderMonthSelected() {
+  const date = state.selectedDate || todayKey();
+  const d = parseDate(date);
+  document.getElementById('selectedDateLabel').textContent = (d.getMonth()+1) + '월 ' + d.getDate() + '일 (' + KOREAN_DAYS[d.getDay()] + ')';
+  const list = state.schedules.filter(s => s.date === date).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  const container = document.getElementById('monthSchedList');
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-emoji">✨</div><div class="empty-text">새로운 계획을 세워볼까요?</div></div>`;
+  } else {
+    container.innerHTML = list.map(s => schedCardHTML(s)).join('');
+  }
+}
+
+function changeMonth(delta) {
+  state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + delta, 1);
+  renderMonth();
+}
+
+// ========== WEEK VIEW ==========
+function renderWeek() {
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  const selected = state.weekSelected || todayKey();
+
+  const scroll = document.getElementById('weekScroll');
+  const cards = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(weekStart.getDate()+i);
+    const key = fmtDate(d);
+    const count = state.schedules.filter(s => s.date === key).length;
+    const isActive = key === selected;
+    cards.push(`<div class="week-day-card ${isActive ? 'active' : ''}" onclick="selectWeekDate('${key}')">
+      <div class="wd-label">${KOREAN_DAYS[d.getDay()]}</div>
+      <div class="wd-num">${d.getDate()}</div>
+      <div class="wd-count">${count > 0 ? count + '개' : '0개'}</div>
+    </div>`);
+  }
+  scroll.innerHTML = cards.join('');
+
+  const sd = parseDate(selected);
+  const isToday = selected === todayKey();
+  document.getElementById('weekSelectedLabel').textContent = isToday ? '오늘의 일정' : (sd.getMonth()+1) + '월 ' + sd.getDate() + '일 일정';
+
+  const list = state.schedules.filter(s => s.date === selected).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  document.getElementById('weekCountLabel').textContent = list.length + '개';
+  const container = document.getElementById('weekSchedList');
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-emoji">✨</div><div class="empty-text">새로운 계획을 세워볼까요?</div></div>`;
+  } else {
+    container.innerHTML = list.map(s => schedCardHTML(s)).join('');
+  }
+}
+
+function selectWeekDate(key) { state.weekSelected = key; renderWeek(); }
+
+// ========== DAY VIEW ==========
+function renderDay() {
+  const date = todayKey();
+  const list = state.schedules.filter(s => s.date === date);
+  document.getElementById('dayCountLabel').textContent = list.length + '개 일정';
+
+  const timeline = document.getElementById('timeline');
+  const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+  const html = hours.map(h => {
+    const hourStr = String(h).padStart(2,'0');
+    const inHour = list.filter(s => {
+      if (!s.time) return false;
+      const sh = parseInt(s.time.split(':')[0]);
+      return sh === h;
+    });
+    const content = inHour.length === 0
+      ? `<div class="time-empty">·</div>`
+      : inHour.map(s => schedCardHTML(s)).join('');
+    return `<div class="time-block">
+      <div class="time-label">${hourStr}:00</div>
+      <div class="time-content">${content}</div>
+    </div>`;
+  }).join('');
+  timeline.innerHTML = html;
+}
+
+// ========== SCHEDULE CARD ==========
+function schedCardHTML(s) {
+  const info = CAT_INFO[s.category];
+  return `<div class="sched-card" style="--bar-color: ${info.color}" onclick="editSchedule('${s.id}')">
+    <div class="sched-checkbox ${s.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleDone('${s.id}')"></div>
+    <div class="sched-body">
+      <div class="sched-title ${s.done ? 'done' : ''}">${escapeHtml(s.title)}</div>
+      <div class="sched-meta">
+        <span class="cat-chip ${info.class}">${info.label}</span>
+        ${s.time ? `<span>🕐 ${s.time}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function toggleDone(sid) {
+  const s = state.schedules.find(x => x.id === sid);
+  if (s) { s.done = !s.done; saveData(); refreshAll(); }
+}
+
+// ========== TODO ==========
+function renderTodo() {
+  const today = todayKey();
+  const all = state.schedules.filter(s => s.date === today);
+  const active = all.filter(s => !s.done).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  const done = all.filter(s => s.done);
+
+  document.getElementById('todoActiveCount').textContent = active.length;
+  document.getElementById('todoDoneCount').textContent = done.length;
+
+  const activeEl = document.getElementById('todoActiveList');
+  const doneEl = document.getElementById('todoDoneList');
+
+  if (active.length === 0) {
+    activeEl.innerHTML = `<div class="empty-state"><div class="empty-emoji">🌱</div><div class="empty-text">모두 완료했어요!</div></div>`;
+  } else {
+    activeEl.innerHTML = active.map(s => schedCardHTML(s)).join('');
+  }
+  if (done.length === 0) {
+    doneEl.innerHTML = `<div class="empty-state" style="padding:20px;"><div class="empty-text" style="font-size:12px;">아직 완료한 일이 없어요</div></div>`;
+  } else {
+    doneEl.innerHTML = done.map(s => schedCardHTML(s)).join('');
+  }
+}
+
+// ========== ROUTINE ==========
+function renderRoutines() {
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay());
+  const todayK = fmtDate(today);
+
+  const container = document.getElementById('routineList');
+  container.innerHTML = routines.map(r => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(weekStart.getDate()+i);
+      const key = fmtDate(d);
+      const isDone = r.days[key];
+      const isToday = key === todayK;
+      days.push(`<div class="routine-day ${isDone ? 'done' : ''} ${isToday ? 'today' : ''}" onclick="toggleRoutine('${r.id}','${key}')">
+        <div class="routine-day-label">${KOREAN_DAYS[d.getDay()]}</div>
+        <div class="routine-day-check">${isDone ? '✓' : d.getDate()}</div>
+      </div>`);
+    }
+    return `<div class="routine-card">
+      <div class="routine-head">
+        <div class="routine-title"><span class="routine-emoji">${r.emoji}</span>${escapeHtml(r.title)}</div>
+        <div class="routine-streak">🔥 ${r.streak}일</div>
+      </div>
+      <div class="routine-week">${days.join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRoutine(rid, key) {
+  const r = routines.find(x => x.id === rid);
+  if (!r) return;
+  r.days[key] = !r.days[key];
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    if (r.days[fmtDate(d)]) streak++;
+    else if (i > 0) break;
+  }
+  r.streak = streak;
+  saveRoutines();
+  renderRoutines();
+}
+
+// ========== BOTTOM SHEET ==========
+function openSheet(scheduleId) {
+  state.editingId = scheduleId || null;
+  if (scheduleId) {
+    const s = state.schedules.find(x => x.id === scheduleId);
+    if (!s) return;
+    document.getElementById('sheetTitle').textContent = '일정 수정';
+    document.getElementById('fieldTitle').value = s.title;
+    document.getElementById('fieldDate').value = s.date;
+    document.getElementById('fieldTime').value = s.time || '';
+    selectCat(s.category);
+    document.getElementById('deleteBtn').style.display = 'block';
+  } else {
+    document.getElementById('sheetTitle').textContent = '새 일정 추가';
+    document.getElementById('fieldTitle').value = '';
+    document.getElementById('fieldDate').value = state.selectedDate || state.weekSelected || todayKey();
+    document.getElementById('fieldTime').value = '';
+    selectCat('work');
+    document.getElementById('deleteBtn').style.display = 'none';
+  }
+  document.getElementById('sheetBackdrop').classList.add('open');
+  document.getElementById('bottomSheet').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('sheetBackdrop').classList.remove('open');
+  document.getElementById('bottomSheet').classList.remove('open');
+  state.editingId = null;
+}
+
+function selectCat(cat) {
+  state.selectedCat = cat;
+  document.querySelectorAll('.cat-option').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+}
+
+function editSchedule(sid) { openSheet(sid); }
+
+function saveSchedule() {
+  const title = document.getElementById('fieldTitle').value.trim();
+  const date = document.getElementById('fieldDate').value;
+  const time = document.getElementById('fieldTime').value;
+  if (!title || !date) { if (!title) document.getElementById('fieldTitle').focus(); return; }
+  if (state.editingId) {
+    const s = state.schedules.find(x => x.id === state.editingId);
+    if (s) { s.title = title; s.date = date; s.time = time; s.category = state.selectedCat; }
+  } else {
+    state.schedules.push({ id: id(), title, date, time, category: state.selectedCat, done: false });
+  }
+  saveData();
+  closeSheet();
+  refreshAll();
+}
+
+function deleteSchedule() {
+  if (!state.editingId) return;
+  state.schedules = state.schedules.filter(s => s.id !== state.editingId);
+  saveData();
+  closeSheet();
+  refreshAll();
+}
+
+// ========== REFRESH ==========
+function refreshAll() {
+  renderHero();
+  renderMonth();
+  renderWeek();
+  renderDay();
+  renderTodo();
+}
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  loadRoutines();
+  state.currentMonth = new Date();
+  state.selectedDate = todayKey();
+  state.weekSelected = todayKey();
+  refreshAll();
+  renderRoutines();
+});
+</script>
+</body>
+</html>

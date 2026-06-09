@@ -37,6 +37,8 @@ export interface ProcessProjectPromptInput {
   selectedVariantId?: string;
   currentRevisionId?: string;
   assistantMessageId?: string;
+  sectionName?: string;
+  sectionHtml?: string;
   signal?: AbortSignal;
   onAssistantTextStart?: () => Promise<void> | void;
   onAssistantTextDelta?: (delta: string) => Promise<void> | void;
@@ -75,6 +77,8 @@ export async function processProjectPrompt({
   selectedVariantId: incomingSelectedVariantId,
   currentRevisionId: incomingCurrentRevisionId,
   assistantMessageId,
+  sectionName,
+  sectionHtml,
   signal,
   onAssistantTextStart,
   onAssistantTextDelta,
@@ -220,6 +224,11 @@ export async function processProjectPrompt({
 
       const project = generateProjectFromFiles(generatedFiles);
 
+      const finalHtml = project.files.find((f) => f.path === "/index.html")?.content;
+      console.log('[HTML SAMPLE]', finalHtml?.slice(0, 500));
+      const imgs = finalHtml?.match(/src="([^"]+)"/g);
+      console.log('[IMG SRCS]', imgs?.slice(0, 5));
+
       variants.push({
         id: `${generationId}-variant-${brief.variantId.toLowerCase()}`,
         name: `Variant ${brief.variantId}`,
@@ -266,11 +275,15 @@ export async function processProjectPrompt({
     };
   }
 
-  const refinePlan = planner.execution.refinePlan;
-
-  if (!refinePlan) {
-    throw new PromptProcessingError("Refine plan is missing", 400);
+  if (!planner.execution.refinePlan) {
+    planner.execution.refinePlan = {
+      targetSectionIds: [],
+      patchIntent: "style",
+      changeSummary: [],
+    };
   }
+
+  const refinePlan = planner.execution.refinePlan;
 
   if (!incomingSelectedVariantId) {
     throw new PromptProcessingError("Refine requires selectedVariantId", 400);
@@ -283,8 +296,12 @@ export async function processProjectPrompt({
   await onAssistantTextFinalizing?.(assistantMessage.answer);
   throwIfAborted(signal);
 
+  const refinePrompt = sectionName
+    ? `[섹션 편집 모드]\n수정 대상: "${sectionName}" 섹션만 변경할 것.\n다른 섹션은 절대 건드리지 말 것.\n전체 HTML을 반환할 것.\n${sectionHtml ? `\n현재 섹션 HTML:\n${sectionHtml}\n` : ""}\n사용자 요청: ${prompt}`
+    : prompt;
+
   const { project, changedFiles } = await refineProjectFromPlan({
-    prompt,
+    prompt: refinePrompt,
     currentProject: projectToRefine,
     interpretation: planner.interpretation,
     refinePlan,

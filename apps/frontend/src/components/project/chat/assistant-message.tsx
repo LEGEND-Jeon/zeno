@@ -4,9 +4,10 @@ import type {
   ChoiceResponse,
   ProjectMessage,
 } from "@zeno/shared";
-import ZenoMark from "@/components/home/zeno-mark";
+import ZenoBadge from "@/components/home/zeno-badge";
 import AssistantChoiceInteraction from "./assistant-choice-interaction";
 import AssistantMarkdownContent from "./assistant-markdown-content";
+import PlanKeywordsCard from "./plan-keywords-card";
 
 type AssistantBubbleProps = {
   children: ReactNode;
@@ -16,19 +17,25 @@ type AssistantBubbleProps = {
 
 export function AssistantBubble({
   children,
-  labelClassName = "text-[#80f3c9]",
-  bubbleClassName = "border-white/8 bg-black/18",
+  labelClassName,
+  bubbleClassName,
 }: AssistantBubbleProps) {
   return (
-    <div className="flex items-start gap-4 sm:gap-5">
-      <ZenoMark className="mt-1 h-8 w-8 shrink-0" />
+    <div className="flex flex-col items-start gap-5">
+      <ZenoBadge size={40} className="shrink-0" />
 
-      <div
-        className={`max-w-[720px] rounded-[30px] border px-5 py-5 text-white/84 shadow-[0_20px_50px_rgba(0,0,0,0.2)] backdrop-blur-[6px] sm:px-6 ${bubbleClassName}`}
-      >
-        <p className={`text-sm font-semibold ${labelClassName}`}>Zeno</p>
-        {children}
-      </div>
+      {bubbleClassName ? (
+        <div
+          className={`max-w-[720px] rounded-[20px] border px-5 py-4 text-white/84 ${bubbleClassName}`}
+        >
+          {labelClassName && (
+            <p className={`mb-2 text-sm font-semibold ${labelClassName}`}>Zeno</p>
+          )}
+          {children}
+        </div>
+      ) : (
+        <div className="max-w-[720px] text-white/84">{children}</div>
+      )}
     </div>
   );
 }
@@ -39,6 +46,7 @@ export default function AssistantMessage({
   selectedChoiceResponse,
   isChoiceDisabled,
   onSubmitChoice,
+  suppressPlanKeywords = false,
 }: {
   message: ProjectMessage;
   footer?: ReactNode;
@@ -48,13 +56,35 @@ export default function AssistantMessage({
     message: ProjectMessage,
     option: ChoiceInteractionOption,
   ) => void;
+  suppressPlanKeywords?: boolean;
 }) {
   const interaction =
     message.interaction?.type === "choice" ? message.interaction : null;
 
+  const showKeywords =
+    !suppressPlanKeywords &&
+    message.status === "completed" &&
+    message.planKeywords &&
+    message.planKeywords.length > 0;
+
+  // 키워드 카드를 "다음 단계" 안내 직전에 삽입
+  const [contentBefore, contentAfter] = (() => {
+    if (!showKeywords) return [message.content, ""] as const;
+    const match = message.content.match(/\n(?=➡️)/);
+    if (match?.index !== undefined) {
+      return [
+        message.content.slice(0, match.index),
+        message.content.slice(match.index),
+      ] as const;
+    }
+    return [message.content, ""] as const;
+  })();
+
   return (
     <AssistantBubble>
-      <AssistantMarkdownContent content={message.content} />
+      <AssistantMarkdownContent content={contentBefore} />
+      {showKeywords && <PlanKeywordsCard groups={message.planKeywords!} />}
+      {contentAfter && <AssistantMarkdownContent content={contentAfter} />}
       {interaction && onSubmitChoice ? (
         <AssistantChoiceInteraction
           interaction={interaction}

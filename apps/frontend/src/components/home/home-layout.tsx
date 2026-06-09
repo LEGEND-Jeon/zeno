@@ -3,8 +3,8 @@ import SideNav from "./side-nav";
 
 const HomeLayout = () => {
   return (
-    <section className="flex h-screen overflow-hidden bg-[#050808]">
-      <SideNav />
+    <section className="flex h-screen overflow-hidden bg-black">
+      <SideNav variant="dark" showGuestCard={false} />
       <HomeHero />
     </section>
   );

@@ -1,4 +1,5 @@
 import ZenoMark from "./zeno-mark";
+import ZenoBadge from "./zeno-badge";
 
 type NavItemButtonProps = {
   children: React.ReactNode;
@@ -97,6 +98,24 @@ const SettingsIcon = () => {
   );
 };
 
+const ProfileCircleIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+    <path
+      d="M4.5 20C4.5 17.2386 7.91015 15 12 15C16.0899 15 19.5 17.2386 19.5 20"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 const GuestCard = () => {
   return (
     <div className="absolute bottom-0 left-[76px] w-52 rounded-2xl border border-black/8 bg-white p-3 shadow-[0_18px_40px_rgba(0,0,0,0.16)]">
@@ -144,7 +163,7 @@ const SideNav = ({ showGuestCard = true, variant = "light" }: SideNavProps) => {
     <aside
       className={`relative flex h-screen shrink-0 flex-col items-center justify-between overflow-visible ${
         isDark
-          ? "w-[90px] border-r border-white/20 bg-black/40"
+          ? "w-[80px] border-r border-white/20 bg-black/40"
           : "w-[76px] border-r border-black/6 bg-white"
       }`}
     >
@@ -156,10 +175,16 @@ const SideNav = ({ showGuestCard = true, variant = "light" }: SideNavProps) => {
             isDark ? "hover:bg-white/10" : "hover:bg-black/5"
           }`}
         >
-          <ZenoMark className={isDark ? "h-7 w-7" : "h-6 w-6"} />
+          {isDark ? (
+            <ZenoBadge size={30} />
+          ) : (
+            <ZenoMark className="h-6 w-6" />
+          )}
         </button>
 
-        <div className="mt-8 flex flex-col items-center gap-3">
+        <div
+          className={`mt-8 flex flex-col items-center ${isDark ? "gap-10" : "gap-3"}`}
+        >
           <NavItemButton label="workspace" isDark={isDark}>
             <LayersIcon />
           </NavItemButton>
@@ -169,7 +194,7 @@ const SideNav = ({ showGuestCard = true, variant = "light" }: SideNavProps) => {
           </NavItemButton>
 
           <div
-            className={`my-1 h-px w-5 ${isDark ? "bg-white/20" : "bg-black/18"}`}
+            className={`h-px w-5 ${isDark ? "bg-white/20" : "my-1 bg-black/18"}`}
           />
 
           <NavItemButton label="settings" isDark={isDark}>
@@ -179,23 +204,28 @@ const SideNav = ({ showGuestCard = true, variant = "light" }: SideNavProps) => {
       </div>
 
       <div className="relative flex w-full flex-col items-center pb-4">
-        <button
-          type="button"
-          aria-label="guest profile"
-          className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full transition ${
-            isDark
-              ? "border border-white/20 bg-white/10 hover:bg-white/15"
-              : "border border-black/8 bg-[linear-gradient(135deg,#f6d8d8,#d4d4d4)]"
-          }`}
-        >
-          <span
-            className={`text-xs font-medium ${isDark ? "text-white/70" : "text-[#222]"}`}
+        {isDark ? (
+          <button
+            type="button"
+            aria-label="로그인"
+            className="flex flex-col items-center gap-[6px] rounded-[10px] p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
           >
-            G
-          </span>
-        </button>
-
-        {!isDark && showGuestCard ? <GuestCard /> : null}
+            <span className="text-[12px] leading-normal text-white">
+              로그인
+            </span>
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              aria-label="guest profile"
+              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-black/8 bg-[linear-gradient(135deg,#f6d8d8,#d4d4d4)] transition"
+            >
+              <span className="text-xs font-medium text-[#222]">G</span>
+            </button>
+            {showGuestCard ? <GuestCard /> : null}
+          </>
+        )}
       </div>
     </aside>
   );

@@ -3,7 +3,7 @@ import { AssistantBubble } from "./assistant-message";
 export default function PendingAssistantMessage() {
   return (
     <AssistantBubble>
-      <div className="mt-3 flex items-center gap-3 text-[15px] leading-7 text-white/72">
+      <div className="flex items-center gap-3 text-[15px] leading-7 text-white/72">
         <span>응답을 준비하고 있어요</span>
 
         <span className="flex items-center gap-1">

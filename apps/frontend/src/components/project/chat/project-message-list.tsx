@@ -56,6 +56,7 @@ function renderMessage(
     option: ChoiceInteractionOption,
   ) => void,
   isChoiceDisabled: boolean,
+  suppressPlanKeywords: boolean,
 ) {
   if (message.role === "user") {
     return <UserMessage key={message.id} message={message} />;
@@ -85,6 +86,7 @@ function renderMessage(
         selectedChoiceResponse={selectedChoiceResponse}
         isChoiceDisabled={isChoiceDisabled}
         onSubmitChoice={onSubmitChoice}
+        suppressPlanKeywords={suppressPlanKeywords}
         footer={
           <AssistantStatusFooter>
             답변은 준비됐고 결과를 마무리하고 있어요.
@@ -102,6 +104,7 @@ function renderMessage(
         selectedChoiceResponse={selectedChoiceResponse}
         isChoiceDisabled={isChoiceDisabled}
         onSubmitChoice={onSubmitChoice}
+        suppressPlanKeywords={suppressPlanKeywords}
         footer={
           <AssistantStatusFooter tone="warning">
             응답 생성을 취소했어요.
@@ -122,6 +125,7 @@ function renderMessage(
       selectedChoiceResponse={selectedChoiceResponse}
       isChoiceDisabled={isChoiceDisabled}
       onSubmitChoice={onSubmitChoice}
+      suppressPlanKeywords={suppressPlanKeywords}
     />
   );
 }
@@ -139,6 +143,10 @@ export default function ProjectMessageList({
   onSelectVariant,
   onReselectVariant,
 }: ProjectMessageListProps) {
+  const firstKeywordsMessageId = messages.find(
+    (m) => m.role === "assistant" && m.planKeywords && m.planKeywords.length > 0,
+  )?.id ?? null;
+
   function getSelectedChoiceResponse(message: ProjectMessage) {
     const interaction =
       message.interaction?.type === "choice" ? message.interaction : null;
@@ -165,6 +173,9 @@ export default function ProjectMessageList({
       }}
     >
       {messages.map((message) => {
+        const suppressPlanKeywords =
+          message.id !== firstKeywordsMessageId;
+
         const rendered = renderMessage(
           message,
           deferredAssistantStatuses,
@@ -172,6 +183,7 @@ export default function ProjectMessageList({
           getSelectedChoiceResponse(message),
           onSubmitChoice,
           isChoiceDisabled,
+          suppressPlanKeywords,
         );
 
         const isLatestGenerateCompleted =

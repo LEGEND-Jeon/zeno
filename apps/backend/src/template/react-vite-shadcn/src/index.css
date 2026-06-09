@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  body {
+    font-family: 'Pretendard', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -52,6 +58,10 @@
 @layer base {
   * {
     @apply border-border;
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
   }
   body {
     @apply bg-background text-foreground;

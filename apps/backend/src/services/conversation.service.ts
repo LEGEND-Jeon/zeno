@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+import { store } from "../lib/store";
 import {
   AssistantInteractionSchema,
   ChoiceResponseSchema,
@@ -68,41 +68,26 @@ export async function createProject(
   name: string,
   userId = "anonymous",
 ): Promise<string> {
-  const project = await prisma.project.create({
-    data: { name, userId },
-  });
+  const project = store.project.create({ name, userId });
   return project.id;
 }
 
 export async function getProjectHistory(
   projectId: string,
 ): Promise<ConversationTurn[]> {
-  const messages = await prisma.message.findMany({
-    where: { projectId },
-    orderBy: { createdAt: "asc" },
-  });
+  const messages = store.message.findMany({ projectId }, "asc");
 
   const turns: ConversationTurn[] = [];
-
-  let currentUserMessage:
-    | {
-        content: string;
-      }
-    | null = null;
+  let currentUserMessage: { content: string } | null = null;
 
   for (const message of messages) {
     if (message.role === "user") {
       const choiceResponse = parseChoiceResponse(message.choiceResponse);
-
-      currentUserMessage = {
-        content: choiceResponse?.prompt ?? message.content,
-      };
+      currentUserMessage = { content: choiceResponse?.prompt ?? message.content };
       continue;
     }
 
-    if (!currentUserMessage) {
-      continue;
-    }
+    if (!currentUserMessage) continue;
 
     if (
       message.role === "assistant" &&
@@ -130,35 +115,32 @@ export async function saveMessages(
   projectId: string,
   data: TurnData,
 ): Promise<void> {
-  await prisma.$transaction([
-    prisma.message.create({
-      data: {
-        projectId,
-        role: "user",
-        content: data.prompt,
-        ...(data.choiceResponse
-          ? { choiceResponse: data.choiceResponse as object }
-          : {}),
-        status: "completed",
-      },
-    }),
-    prisma.message.create({
-      data: {
-        projectId,
-        role: "assistant",
-        content: data.assistantMessage.answer,
-        mode: data.mode,
-        interpretation: data.interpretation as object,
-        execution: data.execution as object,
-        generationId: data.generationId,
-        ...(data.assistantMessage.interaction
-          ? { interaction: data.assistantMessage.interaction as object }
-          : {}),
-        status: "completed",
-        errorMessage: null,
-      },
-    }),
-  ]);
+  store.message.create({
+    projectId,
+    role: "user",
+    content: data.prompt,
+    mode: null,
+    interpretation: null,
+    execution: null,
+    generationId: null,
+    interaction: null,
+    choiceResponse: data.choiceResponse ?? null,
+    status: "completed",
+    errorMessage: null,
+  });
+  store.message.create({
+    projectId,
+    role: "assistant",
+    content: data.assistantMessage.answer,
+    mode: data.mode,
+    interpretation: data.interpretation,
+    execution: data.execution,
+    generationId: data.generationId ?? null,
+    interaction: data.assistantMessage.interaction ?? null,
+    choiceResponse: null,
+    status: "completed",
+    errorMessage: null,
+  });
 }
 
 export async function createPendingTurn(
@@ -166,28 +148,32 @@ export async function createPendingTurn(
   prompt: string,
   choiceResponse?: ChoiceResponse,
 ): Promise<PendingTurnData> {
-  const [userMessage, assistantMessage] = await prisma.$transaction([
-    prisma.message.create({
-      data: {
-        projectId,
-        role: "user",
-        content: prompt,
-        ...(choiceResponse
-          ? { choiceResponse: choiceResponse as object }
-          : {}),
-        status: "completed",
-      },
-    }),
-    prisma.message.create({
-      data: {
-        projectId,
-        role: "assistant",
-        content: "",
-        status: "pending",
-        errorMessage: null,
-      },
-    }),
-  ]);
+  const userMessage = store.message.create({
+    projectId,
+    role: "user",
+    content: prompt,
+    mode: null,
+    interpretation: null,
+    execution: null,
+    generationId: null,
+    interaction: null,
+    choiceResponse: choiceResponse ?? null,
+    status: "completed",
+    errorMessage: null,
+  });
+  const assistantMessage = store.message.create({
+    projectId,
+    role: "assistant",
+    content: "",
+    mode: null,
+    interpretation: null,
+    execution: null,
+    generationId: null,
+    interaction: null,
+    choiceResponse: null,
+    status: "pending",
+    errorMessage: null,
+  });
 
   return {
     userMessageId: userMessage.id,
@@ -200,22 +186,14 @@ export async function loadAssistantMessage(
   assistantMessageId: string,
   userId = "anonymous",
 ): Promise<AssistantMessageRecord | null> {
-  const message = await prisma.message.findFirst({
-    where: {
-      id: assistantMessageId,
-      projectId,
-      role: "assistant",
-      project: {
-        is: {
-          userId,
-        },
-      },
-    },
+  const message = store.message.findFirst({
+    id: assistantMessageId,
+    projectId,
+    role: "assistant",
+    userId,
   });
 
-  if (!message) {
-    return null;
-  }
+  if (!message) return null;
 
   return {
     id: message.id,
@@ -236,18 +214,12 @@ export async function resolveChoiceResponse(
   effectivePrompt: string;
   choiceResponse: ChoiceResponse;
 }> {
-  const sourceMessage = await prisma.message.findFirst({
-    where: {
-      id: choiceResponse.sourceMessageId,
-      projectId,
-      role: "assistant",
-      status: "completed",
-      project: {
-        is: {
-          userId,
-        },
-      },
-    },
+  const sourceMessage = store.message.findFirst({
+    id: choiceResponse.sourceMessageId,
+    projectId,
+    role: "assistant",
+    status: "completed",
+    userId,
   });
 
   if (!sourceMessage) {
@@ -272,19 +244,13 @@ export async function resolveChoiceResponse(
     throw new ConversationInputError("Choice option not found");
   }
 
-  const messages = await prisma.message.findMany({
-    where: {
-      projectId,
-      role: "user",
-    },
-  });
-
-  const existingResponse = messages
-    .map((message) => parseChoiceResponse(message.choiceResponse))
+  const userMessages = store.message.findMany({ projectId, role: "user" });
+  const existingResponse = userMessages
+    .map((m) => parseChoiceResponse(m.choiceResponse))
     .find(
-      (response) =>
-        response?.sourceMessageId === choiceResponse.sourceMessageId &&
-        response.interactionId === choiceResponse.interactionId,
+      (r) =>
+        r?.sourceMessageId === choiceResponse.sourceMessageId &&
+        r.interactionId === choiceResponse.interactionId,
     );
 
   if (existingResponse) {
@@ -307,53 +273,29 @@ export async function resolveChoiceResponse(
 export async function markAssistantMessageStreaming(
   assistantMessageId: string,
 ): Promise<void> {
-  await prisma.message.update({
-    where: {
-      id: assistantMessageId,
-    },
-    data: {
-      status: "streaming",
-      errorMessage: null,
-    },
-  });
+  store.message.update(assistantMessageId, { status: "streaming", errorMessage: null });
 }
 
 export async function markAssistantMessageFinalizing(
   assistantMessageId: string,
   content: string,
 ): Promise<void> {
-  await prisma.message.update({
-    where: {
-      id: assistantMessageId,
-    },
-    data: {
-      content,
-      status: "finalizing",
-      errorMessage: null,
-    },
-  });
+  store.message.update(assistantMessageId, { content, status: "finalizing", errorMessage: null });
 }
 
 export async function completeAssistantMessage(
   assistantMessageId: string,
   data: Omit<TurnData, "prompt">,
 ): Promise<void> {
-  await prisma.message.update({
-    where: {
-      id: assistantMessageId,
-    },
-    data: {
-      content: data.assistantMessage.answer,
-      mode: data.mode,
-      interpretation: data.interpretation as object,
-      execution: data.execution as object,
-      generationId: data.generationId,
-      interaction: data.assistantMessage.interaction
-        ? (data.assistantMessage.interaction as object)
-        : undefined,
-      status: "completed",
-      errorMessage: null,
-    },
+  store.message.update(assistantMessageId, {
+    content: data.assistantMessage.answer,
+    mode: data.mode,
+    interpretation: data.interpretation,
+    execution: data.execution,
+    generationId: data.generationId ?? null,
+    interaction: data.assistantMessage.interaction ?? null,
+    status: "completed",
+    errorMessage: null,
   });
 }
 
@@ -362,15 +304,10 @@ export async function failAssistantMessage(
   errorMessage: string,
   content?: string,
 ): Promise<void> {
-  await prisma.message.update({
-    where: {
-      id: assistantMessageId,
-    },
-    data: {
-      ...(typeof content === "string" ? { content } : {}),
-      status: "failed",
-      errorMessage,
-    },
+  store.message.update(assistantMessageId, {
+    ...(typeof content === "string" ? { content } : {}),
+    status: "failed",
+    errorMessage,
   });
 }
 
@@ -378,15 +315,10 @@ export async function cancelAssistantMessage(
   assistantMessageId: string,
   content = "",
 ): Promise<void> {
-  await prisma.message.update({
-    where: {
-      id: assistantMessageId,
-    },
-    data: {
-      content,
-      status: "cancelled",
-      errorMessage: null,
-    },
+  store.message.update(assistantMessageId, {
+    content,
+    status: "cancelled",
+    errorMessage: null,
   });
 }
 
@@ -398,32 +330,5 @@ export async function updateProjectMetadata(
     currentRevisionId?: string | null;
   },
 ): Promise<void> {
-  const nextData: {
-    name?: string;
-    selectedVariantId?: string | null;
-    currentRevisionId?: string | null;
-  } = {};
-
-  if (typeof data.name === "string") {
-    nextData.name = data.name;
-  }
-
-  if ("selectedVariantId" in data) {
-    nextData.selectedVariantId = data.selectedVariantId;
-  }
-
-  if ("currentRevisionId" in data) {
-    nextData.currentRevisionId = data.currentRevisionId;
-  }
-
-  if (!Object.keys(nextData).length) {
-    return;
-  }
-
-  await prisma.project.update({
-    where: {
-      id: projectId,
-    },
-    data: nextData,
-  });
+  store.project.update(projectId, data);
 }

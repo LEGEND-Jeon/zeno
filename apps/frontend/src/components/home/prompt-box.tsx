@@ -27,7 +27,7 @@ const PromptBox = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isChatVariant = variant === "chat";
   const hasPrompt = prompt.trim().length > 0;
-  const minRows = isChatVariant ? 1 : 2;
+  const minRows = 1;
   const isLoading = isSubmitting || isCancelling;
   const canSubmit = hasPrompt && !isLoading && !isBusy;
   const canCancel = Boolean(onCancel) && isBusy && !isLoading;
@@ -51,8 +51,8 @@ const PromptBox = ({
         return;
       }
 
-      const response = await submitProjectPrompt({ prompt: nextPrompt });
-      router.push(`${submitHref}/${response.projectId}`);
+      sessionStorage.setItem("demo_prompt", nextPrompt);
+      router.push("/project/demo");
       setPrompt("");
     } catch (error) {
       console.error(error);
@@ -142,24 +142,24 @@ const PromptBox = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto w-full max-w-[760px] rounded-[28px] border border-black/5 bg-white/95 p-4 shadow-[0_28px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl"
+      className="w-full max-w-[900px] rounded-[20px] bg-white p-[20px]"
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-[40px]">
         <textarea
           ref={textareaRef}
           rows={minRows}
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full resize-none overflow-y-hidden bg-transparent pb-3 pl-1 pr-1 pt-1 text-[15px] leading-7 text-neutral-900 outline-none placeholder:text-neutral-400"
+          className="w-full resize-none overflow-y-hidden bg-transparent text-[14px] leading-[1.3] text-neutral-900 outline-none placeholder:text-[#606060]"
           placeholder="무엇이든 물어보세요. Zeno가 도와드려요."
         />
 
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-end justify-between">
           <button
             type="button"
             aria-label="파일 추가"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-black/8 bg-white text-[1.5rem] leading-none text-neutral-500 shadow-[0_6px_20px_rgba(0,0,0,0.08)] transition hover:bg-neutral-50"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-[20px] bg-white text-[16px] leading-none text-neutral-500 shadow-[0_0_5px_rgba(0,0,0,0.12)] transition hover:bg-neutral-50"
           >
             +
           </button>
@@ -169,12 +169,12 @@ const PromptBox = ({
             aria-label={canCancel ? "취소" : "전송"}
             onClick={canCancel ? handleCancel : undefined}
             disabled={!canCancel && !canSubmit}
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-lg text-white transition ${
+            className={`flex h-[30px] w-[30px] items-center justify-center rounded-[20px] text-sm text-white shadow-[0_0_10px_rgba(255,255,255,0.08)] transition ${
               canCancel
                 ? "cursor-pointer bg-rose-500 hover:bg-rose-600"
                 : canSubmit
-                  ? "cursor-pointer bg-[#1d1d1f] hover:bg-black"
-                  : "cursor-not-allowed bg-black/25"
+                  ? "cursor-pointer bg-[#242424] hover:bg-black"
+                  : "cursor-not-allowed bg-[#242424]/40"
             }`}
           >
             {isLoading ? "…" : canCancel ? "■" : "↑"}

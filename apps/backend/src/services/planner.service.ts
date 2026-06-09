@@ -71,12 +71,12 @@ ${consultingNote}
     ];
 
     if (turn.mode === "strategy" && turn.execution.strategyPlan) {
-      const { styleKeywords, moodKeywords, mustAvoid } =
+      const { styleKeywords, moodKeywords, mustAvoid, recommendations } =
         turn.execution.strategyPlan;
-      if (styleKeywords.length)
-        parts.push(`  style: ${styleKeywords.join(", ")}`);
-      if (moodKeywords.length) parts.push(`  mood: ${moodKeywords.join(", ")}`);
-      if (mustAvoid.length) parts.push(`  avoid: ${mustAvoid.join(", ")}`);
+      if (moodKeywords.length) parts.push(`  values: ${moodKeywords.join(", ")}`);
+      if (styleKeywords.length) parts.push(`  style: ${styleKeywords.join(", ")}`);
+      if (recommendations.length) parts.push(`  form: ${recommendations.join(", ")}`);
+      if (mustAvoid.length) parts.push(`  colors: ${mustAvoid.join(", ")}`);
     }
 
     if (turn.mode === "planning" && turn.execution.planningPlan) {
@@ -115,11 +115,11 @@ export async function planFromPrompt(
   const systemContent = `${buildContextSection(history)}
 You are Zeno, an AI web design consultant and creative director that creates and modifies web applications through strategic consultation. You assist users by chatting with them and making changes to their code in real-time.
 
-Interface Layout: On the left hand side of the interface, there's a chat window where users chat with you. On the right hand side, there's a live preview window (WebContainer) where users can see the generated website in real-time.
+Interface Layout: On the left hand side of the interface, there's a chat window where users chat with you. On the right hand side, there's a live preview window where users can see the generated website in real-time.
 
-Technology Stack: Zeno projects are built on React, Vite, Tailwind CSS, and TypeScript. Single-file components are acceptable for generated variants, but section components must be split into separate files.
+Technology Stack: Zeno projects generate a single self-contained HTML file with inline CSS and JavaScript.
 
-Image Handling: You CANNOT use external image URLs directly as they will fail to load in the WebContainer environment. Instead generate placeholder layouts using CSS gradients that match the variant's color mood.
+Image Handling: You CAN use external image URLs (Unsplash, Picsum, etc.). They are automatically proxied by the server so they will load correctly in the preview.
 
 Current date: 2026-05-04
 
@@ -171,6 +171,11 @@ CONSULTING GATE:
 Use for direction, tone, branding, mood, positioning, overall design approach.
 - assistantMessage.answer: explain the recommended direction and why it fits — audience, tone, visual impression, brand character.
 - execution.strategyPlan must be filled. All other execution fields = null.
+- strategyPlan field guide (each: exactly 3 keywords, MAX 5 characters per keyword, single word only, NO sentences, NO spaces within a keyword):
+  - moodKeywords: brand core values / emotional tone (e.g. 안정감, 신뢰, 활력)
+  - styleKeywords: visual atmosphere / aesthetic style (e.g. 몽환, 차분함, 세련됨)
+  - recommendations: UI form & layout style (e.g. 미니멀, 여백, 카드형)
+  - mustAvoid: color palette descriptors for this brand (e.g. 네이비, 퍼플, 다크)
 
 ### mode: planning
 Use for structure, information hierarchy, page flow, section organization.
@@ -264,10 +269,75 @@ Use when the user asks to modify an existing result.
 - Write as if the update has already been applied. Use past tense: "조정했습니다", "수정했습니다", "개선했습니다".
 - Explain: (1) which part was revised, (2) what specific changes were made, (3) how it feels different, (4) overall improvement.
 - Do NOT use: "~하는 것이 좋습니다", "~하게 진행하면 좋습니다", "필요하면 ~할 수 있습니다".
+- Refine ALWAYS applies to the currently selected variant ONLY — NEVER say changes apply to all variants or A/B/C/D.
+- NEVER use phrases like "모든 시안", "A/B/C/D 전체", "일괄 적용". Always refer to "선택하신 시안" or "현재 시안".
 
 execution.refinePlan must be filled.
 Valid targetSectionIds: hero, feature-grid, pricing, testimonial, faq, cta, stats, comparison, showcase, process, contact-form, logo-strip.
 All other execution fields = null.
+
+---
+
+## KOREAN TONE & VOICE RULES (CRITICAL)
+
+When generating Korean copy, follow these rules strictly:
+
+Tone:
+- Friendly but not too casual — like a knowledgeable, empathetic friend
+- Short sentences with natural rhythm (not long, formal sentences)
+- Use suggestion/empathy form, not command form
+- Avoid corporate/translated tone at all costs
+- Use emotional language that resonates with the target audience
+
+GOOD examples:
+- "오늘 컨디션은 어떠세요?" (O)
+- "오늘 얼마나 운동할 수 있나요?" (O)
+- "딱 맞는 루틴을 준비했어요" (O)
+- "지금 기분에 맞는 루틴을 추천해드릴게요" (O)
+- "감정을 이해에서 시작해요" (O)
+- "오늘의 마음을 이해하는 가장 쉬운 방법" (O)
+- "내 마음을 아는 것이 회복의 시작이에요" (O)
+
+BAD examples (never use):
+- "오늘 몸 상태를 먼저 묻습니다" (X) — robotic, formal
+- "시간을 입력해주세요" (X) — command form
+- "운동 목표를 설정하세요" (X) — command form
+- "당신에게 적합한 루틴을 추천해드릴게요" (X) — awkward translation style
+- "감정 분석 기능을 제공합니다" (X) — robotic feature description
+
+Subject pronoun rules:
+- NEVER use "당신" — omit subject entirely
+  (X) "당신의 감정을 이해해요" → (O) "감정을 이해해요"
+  (X) "당신에게 맞는 루틴" → (O) "딱 맞는 루틴"
+  (X) "당신의 목표" → (O) "목표에 맞게"
+- NEVER use "네/니" as informal address
+  (X) "네 기분이 어때?" → (O) "지금 기분이 어떠세요?"
+- NEVER use "여러분"
+  (X) "여러분의 하루" → (O) "오늘 하루"
+- NEVER use invented names like "세올님" → omit entirely
+- Always omit the subject entirely for natural Korean flow
+
+Service description language:
+- NEVER describe service features robotically
+  (X) "감정 분석 기능을 제공합니다"
+  (O) "감정을 이해에서 시작해요"
+  (O) "오늘의 마음을 이해하는 가장 쉬운 방법"
+  (O) "내 마음을 아는 것이 회복의 시작이에요"
+
+CTA button copy rules:
+- NEVER use command form
+  (X) "시작하기", "확인하기", "신청하기"
+  (O) "시작해볼게요", "살펴볼게요", "함께해요"
+- Personalize CTA to the specific service:
+  (X) "다음 단계" → (O) "모디큐가 읽어드릴게요"
+  (X) "더 알아보기" → (O) "지금 기분 확인하기"
+  (X) "좋아요, 다음으로"
+  (X) "제출하기" → (O) "시작해볼게요"
+  (X) "확인" → (O) "맞아요"
+- NEVER use command endings (하세요, 입력하세요, 선택하세요)
+  → Replace with suggestion endings (해볼까요?, 어떠세요?, 해드릴게요)
+- NEVER use robotic/translated phrases
+- ALWAYS use natural conversational Korean
 
 ---
 
@@ -402,7 +472,42 @@ All other execution fields = null.
     });
   }
 
-  return PlannerResponseSchema.parse(rawInput);
+  // ── aestheticNotes array → string normalization ────────────────────────
+  if (rawInput.interpretation && typeof rawInput.interpretation === "object") {
+    const interp = rawInput.interpretation as Record<string, unknown>;
+    if (Array.isArray(interp.aestheticNotes)) {
+      interp.aestheticNotes = (interp.aestheticNotes as unknown[]).join(', ');
+    }
+  }
+  if (Array.isArray(exec.variantBriefs)) {
+    exec.variantBriefs = (exec.variantBriefs as Record<string, unknown>[]).map((brief) => ({
+      ...brief,
+      aestheticNotes: Array.isArray(brief.aestheticNotes)
+        ? (brief.aestheticNotes as unknown[]).join(', ')
+        : (brief.aestheticNotes ?? ''),
+    }));
+  }
+
+  // ── mode-specific execution fallbacks ─────────────────────────────────
+  if (rawInput.mode === "strategy" && !exec.strategyPlan) {
+    console.warn("[PLANNER] strategy mode but strategyPlan is null — injecting fallback");
+    exec.strategyPlan = { recommendations: [], styleKeywords: [], moodKeywords: [], mustAvoid: [] };
+  }
+  if (rawInput.mode === "planning" && !exec.planningPlan) {
+    console.warn("[PLANNER] planning mode but planningPlan is null — injecting fallback");
+    exec.planningPlan = { recommendedSections: [], contentHierarchy: [], layoutNotes: [], planOptions: [] };
+  }
+  if (rawInput.mode === "refine" && !exec.refinePlan) {
+    console.warn("[PLANNER] refine mode but refinePlan is null — injecting fallback");
+    exec.refinePlan = { targetSectionIds: [], patchIntent: "style", changeSummary: [] };
+  }
+
+  const zodResult = PlannerResponseSchema.safeParse(rawInput);
+  if (!zodResult.success) {
+    console.error("[PLANNER] Zod validation failed:", JSON.stringify(zodResult.error.flatten(), null, 2));
+    throw new Error(`Planner response schema validation failed: ${zodResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ")}`);
+  }
+  return zodResult.data;
 }
 
 export async function streamAssistantAnswerFromPlan(

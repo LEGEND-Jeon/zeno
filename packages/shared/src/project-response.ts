@@ -15,6 +15,12 @@ export const ProjectMessageStatusSchema = z.enum([
   "cancelled",
 ]);
 
+export const PlanKeywordGroupSchema = z.object({
+  label: z.string(),
+  color: z.enum(["yellow", "blue", "green", "pink"]),
+  items: z.array(z.string()),
+});
+
 export const ProjectMessageSchema = z.object({
   id: z.string(),
   role: z.enum(["user", "assistant"]),
@@ -25,6 +31,7 @@ export const ProjectMessageSchema = z.object({
   interaction: AssistantInteractionSchema.nullable().optional(),
   choiceResponse: ChoiceResponseSchema.nullable().optional(),
   errorMessage: z.string().nullable().optional(),
+  planKeywords: z.array(PlanKeywordGroupSchema).optional(),
   createdAt: z.string(),
 });
 
@@ -64,6 +71,7 @@ export const ProjectCancelResponseSchema = z.object({
   status: ProjectMessageStatusSchema,
 });
 
+export type PlanKeywordGroup = z.infer<typeof PlanKeywordGroupSchema>;
 export type ProjectMessage = z.infer<typeof ProjectMessageSchema>;
 export type ProjectMessageStatus = z.infer<typeof ProjectMessageStatusSchema>;
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;

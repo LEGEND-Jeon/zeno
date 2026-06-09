@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+const TYPING_COMPLETE_TIMEOUT_MS = 10_000;
 import type { ProjectDetailResponse } from "@zeno/shared";
 import PromptBox from "@/components/home/prompt-box";
 import SideNav from "@/components/home/side-nav";
 import ProjectMessageList from "@/components/project/chat/project-message-list";
 import ProjectTabs from "@/components/project/project-tabs";
+import GenerationLoading from "@/components/project/generation-loading";
 import { useProjectChatController } from "@/hooks/project/use-project-chat-controller";
 
 type ProjectChatLayoutProps = {
@@ -14,7 +17,10 @@ type ProjectChatLayoutProps = {
 
 const CHAT_DISCLAIMER =
   "Zeno는 실수를 할 수 있습니다. 중요한 정보는 재차 확인하세요.";
-const MESSAGE_LIST_BOTTOM_PADDING = 200;
+const MESSAGE_LIST_BOTTOM_PADDING = 24;
+const MIN_CHAT_WIDTH = 240;
+const MIN_RIGHT_PANEL_WIDTH = 240;
+const DEFAULT_CHAT_WIDTH = 460;
 
 const ProjectChatLayout = ({
   initialProjectDetail,
@@ -42,6 +48,76 @@ const ProjectChatLayout = ({
     initialProjectDetail.latestGeneration?.generationId ?? null,
   );
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+
+  const [chatHidden, setChatHidden] = useState(false);
+  const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
+
+  const deferredTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const ids = Object.keys(deferredAssistantStatuses);
+    if (ids.length === 0) {
+      if (deferredTimeoutRef.current !== null) {
+        clearTimeout(deferredTimeoutRef.current);
+        deferredTimeoutRef.current = null;
+      }
+      return;
+    }
+    if (deferredTimeoutRef.current !== null) return;
+    const [firstId] = ids;
+    deferredTimeoutRef.current = setTimeout(() => {
+      deferredTimeoutRef.current = null;
+      commitDeferredAssistantStatus(firstId);
+    }, TYPING_COMPLETE_TIMEOUT_MS);
+  }, [deferredAssistantStatuses, commitDeferredAssistantStatus]);
+
+  const handleTypingComplete = useCallback(
+    (assistantMessageId: string) => {
+      if (deferredTimeoutRef.current !== null) {
+        clearTimeout(deferredTimeoutRef.current);
+        deferredTimeoutRef.current = null;
+      }
+      commitDeferredAssistantStatus(assistantMessageId);
+    },
+    [commitDeferredAssistantStatus],
+  );
+
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(DEFAULT_CHAT_WIDTH);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const delta = e.clientX - startXRef.current;
+      const maxChatWidth = (mainRef.current?.offsetWidth ?? window.innerWidth) - MIN_RIGHT_PANEL_WIDTH;
+      setChatWidth(Math.min(maxChatWidth, Math.max(MIN_CHAT_WIDTH, startWidthRef.current + delta)));
+    };
+    const handleMouseUp = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const handleDividerMouseDown = (e: React.MouseEvent) => {
+    isDraggingRef.current = true;
+    startXRef.current = e.clientX;
+    startWidthRef.current = chatWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    e.preventDefault();
+  };
+
   useEffect(() => {
     const currentId = latestGeneration?.generationId ?? null;
     if (currentId !== null && currentId !== prevGenerationIdRef.current) {
@@ -49,6 +125,29 @@ const ProjectChatLayout = ({
       setLocalSelectedVariantId(null);
     }
   }, [latestGeneration?.generationId]);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages]);
+
+  // 마지막으로 완료된 assistant 메시지의 mode
+  const lastAssistantMode = useMemo(
+    () =>
+      [...messages]
+        .reverse()
+        .find((m) => m.role === "assistant" && m.status !== "pending" && m.mode != null)
+        ?.mode ?? null,
+    [messages],
+  );
+
+  // generate/refine 응답이 온 적 있거나, latestGeneration이 있을 때만 오른쪽 패널 표시
+  const showRightPanel =
+    latestGeneration !== null ||
+    lastAssistantMode === "generate" ||
+    lastAssistantMode === "refine";
 
   const needsVariantSelection =
     latestGeneration !== null && localSelectedVariantId === null;
@@ -69,30 +168,28 @@ const ProjectChatLayout = ({
   }
 
   return (
-    <section className="flex h-screen overflow-hidden bg-[#050808]">
+    <section
+      className="flex h-screen overflow-hidden"
+      style={{
+        background: [
+          "radial-gradient(ellipse 75% 60% at 100% 0%, rgba(0,235,178,0.85) 0%, rgba(0,200,155,0.4) 38%, transparent 65%)",
+          "radial-gradient(ellipse 65% 58% at 0% 100%, rgba(0,210,158,0.72) 0%, rgba(0,175,132,0.36) 38%, transparent 65%)",
+          "#050d0e",
+        ].join(", "),
+      }}
+    >
       {/* 사이드바 */}
-      <div className="hidden md:block">
+      <div className="hidden md:block bg-[#080808]">
         <SideNav showGuestCard={false} variant="dark" />
       </div>
 
-      <main className="relative flex h-screen min-w-0 flex-1 overflow-hidden">
+      <main ref={mainRef} className={`relative flex h-screen min-w-0 flex-1 overflow-hidden${!showRightPanel ? " justify-center" : ""}`}>
         {/* 왼쪽: 채팅 패널 */}
-        <div className="relative flex h-full w-[480px] flex-shrink-0 flex-col">
-          {/* 배경 그라디언트 효과 */}
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute left-[-8%] top-[-6%] h-[26rem] w-[26rem] rounded-full bg-emerald-400/12 blur-[140px]" />
-            <div className="absolute left-[8%] top-[18%] h-[22rem] w-[22rem] rounded-full bg-emerald-500/10 blur-[120px]" />
-            <div className="absolute bottom-[-10%] left-[10%] h-[18rem] w-[18rem] rounded-full bg-green-500/12 blur-[120px]" />
-            <div className="absolute left-1/2 top-0 h-full w-[24rem] -translate-x-1/2 bg-emerald-400/8 blur-[120px]" />
-            <div className="absolute right-[-10%] top-[-2%] h-[38rem] w-[38rem] rounded-full bg-teal-200/22 blur-[180px]" />
-            <div className="absolute right-[8%] top-[42%] h-[26rem] w-[26rem] rounded-full bg-emerald-400/14 blur-[150px]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.15)_30%,rgba(0,0,0,0.72)_70%,rgba(0,0,0,0.9)_100%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.22)_0%,rgba(0,0,0,0.84)_18%,rgba(0,0,0,0.92)_48%,rgba(0,0,0,0.18)_100%)]" />
-          </div>
+        <div className="relative flex h-full flex-shrink-0 flex-col overflow-hidden" style={{ width: !showRightPanel ? 760 : chatHidden ? 0 : chatWidth, display: showRightPanel && chatHidden ? 'none' : undefined }}>
 
-          <div className="relative z-10 h-full">
-            {/* 메시지 목록 */}
-            <div className="h-full overflow-x-hidden overflow-y-auto">
+          <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
+            {/* 메시지 목록 — 이 영역만 스크롤 */}
+            <div ref={scrollContainerRef} className="flex-1 overflow-x-hidden overflow-y-auto">
               <header className="flex items-center justify-between px-5 pt-5 md:hidden">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium tracking-[0.28em] text-white/86">
@@ -101,16 +198,16 @@ const ProjectChatLayout = ({
                 </div>
               </header>
 
-              <div className="mx-auto flex min-h-full w-full flex-col px-5 pt-6">
+              <div className="mx-auto flex w-full flex-col px-5 pt-6">
                 <p className="text-center text-[13px] font-normal leading-[1.7] text-white/50">
                   {headerTimestamp}
                 </p>
 
-                <div className="mt-6 flex-1">
+                <div className="mt-6">
                   <ProjectMessageList
                     messages={messages}
                     deferredAssistantStatuses={deferredAssistantStatuses}
-                    onTypingComplete={commitDeferredAssistantStatus}
+                    onTypingComplete={handleTypingComplete}
                     onSubmitChoice={handleSubmitChoice}
                     isChoiceDisabled={isPromptBusy}
                     bottomPadding={MESSAGE_LIST_BOTTOM_PADDING}
@@ -124,9 +221,9 @@ const ProjectChatLayout = ({
               </div>
             </div>
 
-            {/* 입력창 - 하단 고정 */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-4">
-              <div className={needsVariantSelection ? "pointer-events-none opacity-40" : "pointer-events-auto"}>
+            {/* 입력창 — flex-shrink-0으로 항상 하단 고정 */}
+            <div className="flex-shrink-0 px-5 pb-4 pt-2">
+              <div className={needsVariantSelection ? "pointer-events-none opacity-40" : ""}>
                 <PromptBox
                   variant="chat"
                   onSubmitPrompt={handleSubmitWithVariant}
@@ -148,15 +245,33 @@ const ProjectChatLayout = ({
           </div>
         </div>
 
-        {/* 구분선 */}
-        <div className="w-px shrink-0 self-stretch bg-white/15" />
+        {/* 리사이즈 핸들 */}
+        {showRightPanel && !chatHidden && <div
+          className="group relative flex w-3 shrink-0 cursor-col-resize select-none items-center justify-center self-stretch"
+          onMouseDown={handleDividerMouseDown}
+        >
+          <div className="h-full w-px bg-white/15 transition-colors group-hover:bg-white/25" />
+          <div className="absolute left-1/2 top-1/2 flex h-[26px] w-[13px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-[3.5px] rounded-full bg-white/90 shadow-sm">
+            <div className="h-[3px] w-[3px] rounded-full bg-black/30" />
+            <div className="h-[3px] w-[3px] rounded-full bg-black/30" />
+            <div className="h-[3px] w-[3px] rounded-full bg-black/30" />
+          </div>
+        </div>}
 
         {/* 오른쪽: Preview/Code 패널 */}
-        <div className="h-full min-w-0 flex-1 overflow-hidden">
-          {selectedVariant ? (
-            <ProjectTabs project={selectedVariant.project} />
-          ) : null}
-        </div>
+        {showRightPanel && (
+          <div className="h-full min-w-0 flex-1 overflow-hidden">
+            {selectedVariant ? (
+              <ProjectTabs
+                project={selectedVariant.project}
+                chatHidden={chatHidden}
+                onToggleChat={() => setChatHidden((v) => !v)}
+              />
+            ) : isPromptBusy ? (
+              <GenerationLoading />
+            ) : null}
+          </div>
+        )}
       </main>
     </section>
   );

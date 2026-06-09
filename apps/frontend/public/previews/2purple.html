@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>달록 · 하루를 정돈하는 일정 앱</title>
+<style>
+:root {
+  --color-primary: #A78BFA;
+  --color-primary-deep: #8B6FE8;
+  --color-indigo: #6366F1;
+  --color-emerald: #34D399;
+  --color-bg: #F5F3FF;
+  --color-surface: #FFFFFF;
+  --color-card: #EDE9FE;
+  --color-text: #1F1B2E;
+  --color-muted: #8A85A3;
+  --color-line: #EFEBFA;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--color-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+.app-wrapper {
+  position: relative; width: 390px; max-width: 390px; height: 100vh;
+  margin: 0 auto; overflow: hidden; background: var(--color-bg);
+}
+.screen {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  overflow-y: auto; padding-bottom: 88px;
+  visibility: hidden; pointer-events: none;
+  scrollbar-width: none;
+}
+.screen::-webkit-scrollbar { display: none; }
+.screen.active { visibility: visible; pointer-events: auto; }
+
+/* Header */
+.app-header {
+  padding: 20px 20px 12px;
+  background: var(--color-bg);
+  position: sticky; top: 0; z-index: 10;
+}
+.greeting {
+  font-size: 13px; color: var(--color-muted); margin-bottom: 4px; font-weight: 500;
+}
+.header-row {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.month-title {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.month-title .year {
+  font-size: 13px; color: var(--color-muted); font-weight: 500;
+}
+.nav-arrows { display: flex; gap: 4px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: var(--color-surface);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--color-text);
+  box-shadow: 0 2px 8px rgba(167,139,250,0.08);
+  font-size: 16px;
+}
+.icon-btn:active { transform: scale(0.94); }
+
+/* View tabs */
+.view-tabs {
+  display: flex; gap: 4px; padding: 0 20px; margin-top: 16px;
+}
+.view-tab {
+  flex: 1; padding: 10px 0; border: none; background: transparent;
+  font-size: 13px; font-weight: 600; color: var(--color-muted);
+  border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
+  font-family: inherit;
+}
+.view-tab.active {
+  background: var(--color-surface);
+  color: var(--color-primary-deep);
+  box-shadow: 0 2px 8px rgba(167,139,250,0.12);
+}
+
+/* Calendar */
+.calendar-wrap {
+  margin: 16px 20px 0; padding: 18px 14px;
+  background: var(--color-surface); border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(167,139,250,0.06);
+}
+.weekday-row {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8px;
+}
+.weekday {
+  text-align: center; font-size: 11px; font-weight: 600;
+  color: var(--color-muted); padding: 6px 0;
+}
+.weekday.sun { color: #F87171; }
+.weekday.sat { color: #60A5FA; }
+.days-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+}
+.day-cell {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  font-size: 13px; font-weight: 500; color: var(--color-text);
+  cursor: pointer; border-radius: 50%;
+  position: relative; transition: background 0.15s ease;
+}
+.day-cell.other { color: #D6D2E3; }
+.day-cell.today { color: var(--color-primary-deep); font-weight: 700; }
+.day-cell.selected {
+  background: var(--color-primary);
+  color: white !important; font-weight: 700;
+}
+.day-cell.sun:not(.selected) { color: #F87171; }
+.day-cell.sat:not(.selected) { color: #60A5FA; }
+.day-cell.other.sun, .day-cell.other.sat { color: #D6D2E3; }
+.dots-row { display: flex; gap: 2px; height: 4px; }
+.dot { width: 4px; height: 4px; border-radius: 50%; }
+.dot.work { background: var(--color-indigo); }
+.dot.personal { background: var(--color-primary); }
+.dot.health { background: var(--color-emerald); }
+.day-cell.selected .dot { background: rgba(255,255,255,0.85); }
+
+/* Section header */
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 20px 12px;
+}
+.section-title {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.3px;
+}
+.section-title .count {
+  margin-left: 6px; font-size: 12px; color: var(--color-primary-deep);
+  background: var(--color-card); padding: 2px 8px; border-radius: 10px;
+}
+.add-link {
+  font-size: 12px; color: var(--color-primary-deep); font-weight: 600;
+  border: none; background: none; cursor: pointer; font-family: inherit;
+}
+
+/* Category chips row */
+.chip-row {
+  display: flex; gap: 6px; padding: 0 20px 4px; overflow-x: auto;
+  scrollbar-width: none;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; padding: 6px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; border: 1px solid var(--color-line);
+  background: var(--color-surface); color: var(--color-muted);
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  font-family: inherit;
+}
+.chip.active {
+  background: var(--color-primary); color: white; border-color: var(--color-primary);
+}
+.chip-dot { width: 6px; height: 6px; border-radius: 50%; }
+.chip-dot.work { background: var(--color-indigo); }
+.chip-dot.personal { background: var(--color-primary); }
+.chip-dot.health { background: var(--color-emerald); }
+.chip.active .chip-dot { background: white !important; }
+
+/* Schedule cards */
+.cards-wrap { padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+.s-card {
+  background: var(--color-card); border-radius: 16px;
+  padding: 14px 16px 14px 18px;
+  display: flex; align-items: flex-start; gap: 12px;
+  position: relative; overflow: hidden;
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+.s-card:active { transform: scale(0.98); }
+.s-card::before {
+  content: ''; position: absolute; left: 0; top: 12px; bottom: 12px;
+  width: 4px; border-radius: 2px;
+  background: var(--color-primary);
+}
+.s-card[data-cat="work"]::before { background: var(--color-indigo); }
+.s-card[data-cat="health"]::before { background: var(--color-emerald); }
+.s-card[data-cat="work"] { background: #E0E7FF; }
+.s-card[data-cat="health"] { background: #D1FAE5; }
+
+.s-check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.15); flex-shrink: 0;
+  background: rgba(255,255,255,0.6); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+  transition: all 0.2s ease;
+}
+.s-check.checked {
+  background: var(--color-primary); border-color: var(--color-primary);
+  color: white;
+}
+.s-card[data-cat="work"] .s-check.checked { background: var(--color-indigo); border-color: var(--color-indigo); }
+.s-card[data-cat="health"] .s-check.checked { background: var(--color-emerald); border-color: var(--color-emerald); }
+.s-check.checked::after { content: '✓'; font-size: 13px; font-weight: 700; }
+
+.s-body { flex: 1; min-width: 0; }
+.s-time {
+  font-size: 11px; font-weight: 600; color: var(--color-muted);
+  margin-bottom: 2px; letter-spacing: 0.3px;
+}
+.s-title {
+  font-size: 14px; font-weight: 600; color: var(--color-text);
+  line-height: 1.4;
+}
+.s-title.done { text-decoration: line-through; opacity: 0.5; }
+.s-meta {
+  display: flex; align-items: center; gap: 6px; margin-top: 6px;
+  font-size: 11px; color: var(--color-muted);
+}
+.s-meta .mini-chip {
+  background: rgba(255,255,255,0.7); padding: 2px 7px; border-radius: 8px;
+  font-weight: 600;
+}
+
+/* Empty state */
+.empty {
+  text-align: center; padding: 40px 20px;
+  color: var(--color-muted); font-size: 13px;
+}
+.empty .emoji { font-size: 36px; margin-bottom: 10px; display: block; }
+
+/* FAB */
+.fab {
+  position: absolute; bottom: 88px; right: 24px;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: var(--color-primary);
+  color: white; border: none; cursor: pointer;
+  font-size: 26px; font-weight: 300;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 20px rgba(167,139,250,0.4);
+  z-index: 50;
+  transition: transform 0.2s ease;
+}
+.fab:active { transform: scale(0.92); }
+
+/* Tab bar */
+.tab-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 390px; display: flex; align-items: stretch;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-line);
+  padding: 8px 12px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+}
+.tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; padding: 8px 4px;
+  border: none; background: none; color: var(--color-muted);
+  font-size: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  font-family: inherit; border-radius: 14px;
+  transition: all 0.2s ease;
+}
+.tab span.label { font-size: 10px; line-height: 1; font-weight: 600; }
+.tab .ico { font-size: 18px; line-height: 1; }
+.tab.active {
+  background: var(--color-card);
+  color: var(--color-primary-deep);
+}
+
+/* Weekly view */
+.week-wrap {
+  margin: 16px 20px 0; background: var(--color-surface);
+  border-radius: 20px; padding: 16px 12px;
+  box-shadow: 0 4px 16px rgba(167,139,250,0.06);
+}
+.week-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+}
+.week-col {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; padding: 6px 0;
+  border-radius: 12px;
+}
+.week-col .wd { font-size: 10px; font-weight: 600; color: var(--color-muted); }
+.week-col .wn {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600;
+}
+.week-col.selected .wn {
+  background: var(--color-primary); color: white;
+}
+.week-col .wdots {
+  display: flex; gap: 2px; height: 4px;
+}
+
+/* Daily view */
+.daily-wrap { padding: 16px 20px 20px; }
+.daily-date {
+  font-size: 14px; font-weight: 700; color: var(--color-primary-deep);
+  margin-bottom: 4px;
+}
+.daily-summary {
+  font-size: 12px; color: var(--color-muted); margin-bottom: 14px;
+}
+.hour-row {
+  display: flex; gap: 12px; padding: 8px 0;
+  border-bottom: 1px dashed var(--color-line);
+  min-height: 56px;
+}
+.hour-row:last-child { border-bottom: none; }
+.hour-label {
+  width: 44px; flex-shrink: 0; font-size: 11px; font-weight: 600;
+  color: var(--color-muted); padding-top: 4px;
+}
+.hour-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.hour-item {
+  background: var(--color-card); border-radius: 10px;
+  padding: 8px 12px; font-size: 12px; font-weight: 600;
+  border-left: 3px solid var(--color-primary);
+  cursor: pointer;
+}
+.hour-item[data-cat="work"] { background: #E0E7FF; border-left-color: var(--color-indigo); }
+.hour-item[data-cat="health"] { background: #D1FAE5; border-left-color: var(--color-emerald); }
+.hour-item .ht { font-size: 10px; color: var(--color-muted); font-weight: 500; margin-top: 2px; }
+
+/* Modal */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(31,27,46,0.45);
+  display: none; align-items: center; justify-content: center;
+  z-index: 200; padding: 20px;
+}
+.modal-mask.show { display: flex; }
+.modal {
+  width: 100%; max-width: 340px; background: var(--color-surface);
+  border-radius: 22px; overflow: hidden;
+  box-shadow: 0 20px 50px rgba(31,27,46,0.25);
+  animation: pop 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@keyframes pop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+.modal-top {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-deep) 100%);
+  padding: 18px 20px; color: white;
+}
+.modal-top h3 { font-size: 16px; font-weight: 700; }
+.modal-top p { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+.modal-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--color-muted); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.field input, .field select {
+  width: 100%; padding: 11px 14px; border-radius: 12px;
+  border: 1.5px solid var(--color-line); background: #FAFAFE;
+  font-size: 14px; font-family: inherit; color: var(--color-text);
+  outline: none;
+  transition: border 0.15s ease;
+}
+.field input:focus, .field select:focus { border-color: var(--color-primary); background: white; }
+.time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cat-pick { display: flex; gap: 6px; }
+.cat-opt {
+  flex: 1; padding: 10px 6px; border-radius: 12px;
+  border: 1.5px solid var(--color-line); background: white;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-family: inherit;
+  color: var(--color-text);
+}
+.cat-opt.sel-work { border-color: var(--color-indigo); background: #E0E7FF; color: var(--color-indigo); }
+.cat-opt.sel-personal { border-color: var(--color-primary); background: var(--color-card); color: var(--color-primary-deep); }
+.cat-opt.sel-health { border-color: var(--color-emerald); background: #D1FAE5; color: #0F9F6E; }
+.cat-opt .cdot { width: 8px; height: 8px; border-radius: 50%; }
+.modal-actions { display: flex; gap: 8px; margin-top: 6px; }
+.btn-cancel, .btn-save, .btn-delete {
+  flex: 1; padding: 12px 0; border-radius: 12px; border: none;
+  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.btn-cancel { background: #F5F3FF; color: var(--color-muted); }
+.btn-save { background: var(--color-primary); color: white; }
+.btn-delete { background: #FEE2E2; color: #DC2626; flex: 0.6; }
+
+/* Search */
+.search-wrap { padding: 20px; }
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--color-surface); border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 10px rgba(167,139,250,0.08);
+}
+.search-box input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 14px; font-family: inherit; color: var(--color-text);
+}
+.search-results { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.search-empty {
+  text-align: center; padding: 60px 20px; color: var(--color-muted); font-size: 13px;
+}
+.search-empty .emoji { font-size: 40px; display: block; margin-bottom: 12px; }
+
+/* Stat cards row */
+.stat-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  padding: 0 20px; margin-top: 12px;
+}
+.stat-card {
+  background: var(--color-surface); border-radius: 14px;
+  padding: 12px 10px; text-align: center;
+  box-shadow: 0 2px 8px rgba(167,139,250,0.05);
+}
+.stat-card .sn {
+  font-size: 20px; font-weight: 700; color: var(--color-primary-deep);
+}
+.stat-card .sl {
+  font-size: 10px; color: var(--color-muted); font-weight: 600; margin-top: 2px;
+}
+.stat-card.work .sn { color: var(--color-indigo); }
+.stat-card.health .sn { color: #10B981; }
+
+</style>
+<style>
+h1, h2, h3, h4, h5, h6 { line-height: 1.2 !important; }
+  body, p, span, li, button, input, textarea, div { line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- HOME / SCHEDULE SCREEN -->
+  <section id="screen-home" class="screen active" data-section="home-screen">
+    <div class="app-header">
+      <div class="greeting">오늘 하루도 잘 정돈해볼까요 🌷</div>
+      <div class="header-row">
+        <div class="month-title">
+          <span id="monthLabel">11월</span>
+          <span class="year" id="yearLabel">2024</span>
+        </div>
+        <div class="nav-arrows">
+          <button class="icon-btn" onclick="prevMonth()">‹</button>
+          <button class="icon-btn" onclick="goToday()">●</button>
+          <button class="icon-btn" onclick="nextMonth()">›</button>
+        </div>
+      </div>
+
+      <div class="view-tabs">
+        <button class="view-tab active" id="vt-month" onclick="switchView('month')">월간</button>
+        <button class="view-tab" id="vt-week" onclick="switchView('week')">주간</button>
+        <button class="view-tab" id="vt-day" onclick="switchView('day')">일간</button>
+      </div>
+    </div>
+
+    <!-- Month view -->
+    <div id="view-month">
+      <div class="calendar-wrap">
+        <div class="weekday-row">
+          <div class="weekday sun">일</div>
+          <div class="weekday">월</div>
+          <div class="weekday">화</div>
+          <div class="weekday">수</div>
+          <div class="weekday">목</div>
+          <div class="weekday">금</div>
+          <div class="weekday sat">토</div>
+        </div>
+        <div class="days-grid" id="daysGrid"></div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card work"><div class="sn" id="stat-work">0</div><div class="sl">업무</div></div>
+        <div class="stat-card"><div class="sn" id="stat-personal">0</div><div class="sl">개인</div></div>
+        <div class="stat-card health"><div class="sn" id="stat-health">0</div><div class="sl">건강</div></div>
+      </div>
+    </div>
+
+    <!-- Week view -->
+    <div id="view-week" style="display:none">
+      <div class="week-wrap">
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+    </div>
+
+    <!-- Day view -->
+    <div id="view-day" style="display:none">
+      <div class="daily-wrap">
+        <div class="daily-date" id="dailyDateLabel">11월 14일 목요일</div>
+        <div class="daily-summary" id="dailySummary">계획된 일정이 없어요</div>
+        <div id="hourList"></div>
+      </div>
+    </div>
+
+    <!-- Schedule list (under month/week views) -->
+    <div id="scheduleListSection">
+      <div class="section-head">
+        <div class="section-title">
+          <span id="selectedDateLabel">오늘의 일정</span>
+          <span class="count" id="selectedDateCount">0</span>
+        </div>
+        <button class="add-link" onclick="openModal()">+ 추가</button>
+      </div>
+
+      <div class="chip-row">
+        <button class="chip active" data-cat="all" onclick="filterCat('all', this)">전체</button>
+        <button class="chip" data-cat="work" onclick="filterCat('work', this)"><span class="chip-dot work"></span>업무</button>
+        <button class="chip" data-cat="personal" onclick="filterCat('personal', this)"><span class="chip-dot personal"></span>개인</button>
+        <button class="chip" data-cat="health" onclick="filterCat('health', this)"><span class="chip-dot health"></span>건강</button>
+      </div>
+
+      <div class="cards-wrap" id="cardsWrap"></div>
+    </div>
+
+    <button class="fab" onclick="openModal()">+</button>
+  </section>
+
+  <!-- FEED SCREEN -->
+  <section id="screen-feed" class="screen" data-section="card-feed">
+    <div class="app-header">
+      <div class="greeting">앞으로의 일정을 한눈에</div>
+      <div class="header-row">
+        <div class="month-title">전체 일정</div>
+        <button class="icon-btn" onclick="openModal()" style="background:var(--color-primary);color:white;">+</button>
+      </div>
+      <div class="view-tabs">
+        <button class="view-tab active" id="ft-upcoming" onclick="switchFeed('upcoming')">예정</button>
+        <button class="view-tab" id="ft-done" onclick="switchFeed('done')">완료</button>
+        <button class="view-tab" id="ft-all" onclick="switchFeed('all')">전체</button>
+      </div>
+    </div>
+    <div class="cards-wrap" id="feedWrap" style="margin-top:16px;"></div>
+  </section>
+
+  <!-- SEARCH SCREEN -->
+  <section id="screen-search" class="screen" data-section="card-feed">
+    <div class="app-header">
+      <div class="greeting">찾고 있는 일정이 있나요?</div>
+      <div class="month-title">검색</div>
+    </div>
+    <div class="search-wrap">
+      <div class="search-box">
+        <span style="font-size:16px;">🔍</span>
+        <input id="searchInput" placeholder="제목으로 일정을 찾아볼게요" oninput="runSearch()">
+      </div>
+      <div class="search-results" id="searchResults">
+        <div class="search-empty">
+          <span class="emoji">🌙</span>
+          단어를 입력하면 일정을 찾아드릴게요
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button class="tab active" id="tab-home" onclick="switchTab('home')">
+      <span class="ico">🏠</span><span class="label">홈</span>
+    </button>
+    <button class="tab" id="tab-feed" onclick="switchTab('feed')">
+      <span class="ico">📋</span><span class="label">일정</span>
+    </button>
+    <button class="tab" id="tab-search" onclick="switchTab('search')">
+      <span class="ico">🔍</span><span class="label">검색</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Modal -->
+<div class="modal-mask" id="modal">
+  <div class="modal">
+    <div class="modal-top">
+      <h3 id="modalTitle">새 일정 추가</h3>
+      <p id="modalSub">하루를 조금 더 정돈해볼까요</p>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>제목</label>
+        <input id="f-title" placeholder="예: 디자인 회의">
+      </div>
+      <div class="time-row">
+        <div class="field">
+          <label>날짜</label>
+          <input id="f-date" type="date">
+        </div>
+        <div class="field">
+          <label>시간</label>
+          <input id="f-time" type="time" value="09:00">
+        </div>
+      </div>
+      <div class="field">
+        <label>카테고리</label>
+        <div class="cat-pick">
+          <button class="cat-opt" data-cat="work" onclick="pickCat('work', this)"><span class="cdot" style="background:var(--color-indigo)"></span>업무</button>
+          <button class="cat-opt sel-personal" data-cat="personal" onclick="pickCat('personal', this)"><span class="cdot" style="background:var(--color-primary)"></span>개인</button>
+          <button class="cat-opt" data-cat="health" onclick="pickCat('health', this)"><span class="cdot" style="background:var(--color-emerald)"></span>건강</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">취소</button>
+        <button class="btn-delete" id="btnDelete" onclick="deleteEvent()" style="display:none">삭제</button>
+        <button class="btn-save" onclick="saveEvent()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- State ----------
+const STORAGE_KEY = 'dalrok_events_v2';
+let events = loadEvents();
+let viewDate = new Date();
+let selectedDate = todayKey();
+let currentView = 'month';
+let currentCat = 'all';
+let editingId = null;
+let pickedCat = 'personal';
+let feedFilter = 'upcoming';
+
+function loadEvents() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+
+  // Rich seed data — 월~일 전체 오전/오후/저녁 시간대 풍성하게
+  const t = new Date();
+  const k = (offset) => {
+    const d = new Date(t);
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().slice(0, 10);
+  };
+
+  // 오늘을 기준으로 이번 주 일~토 인덱스 계산
+  const todayDow = t.getDay(); // 0=일
+  // 이번 주 일요일 offset
+  const sunOffset = -todayDow;
+
+  const dk = (dowOffset) => {
+    const d = new Date(t);
+    d.setDate(d.getDate() + sunOffset + dowOffset);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const seed = [
+    // 일요일 (0)
+    { id: uid(), title: '주간 플래너 작성', date: dk(0), time: '09:00', cat: 'personal', done: false },
+    { id: uid(), title: '요가 클래스', date: dk(0), time: '10:30', cat: 'health', done: false },
+    { id: uid(), title: '가족 점심 식사', date: dk(0), time: '12:30', cat: 'personal', done: false },
+    { id: uid(), title: '독서 (소설)', date: dk(0), time: '15:00', cat: 'personal', done: false },
+    { id: uid(), title: '넷플릭스 영화', date: dk(0), time: '20:00', cat: 'personal', done: false },
+
+    // 월요일 (1)
+    { id: uid(), title: '팀 스탠드업 미팅', date: dk(1), time: '09:30', cat: 'work', done: false },
+    { id: uid(), title: '아침 러닝 5km', date: dk(1), time: '07:00', cat: 'health', done: true },
+    { id: uid(), title: '기획서 초안 작성', date: dk(1), time: '10:30', cat: 'work', done: false },
+    { id: uid(), title: '점심 팀 회식', date: dk(1), time: '12:00', cat: 'personal', done: false },
+    { id: uid(), title: '클라이언트 미팅 준비', date: dk(1), time: '14:00', cat: 'work', done: false },
+    { id: uid(), title: '헬스장 웨이트', date: dk(1), time: '19:00', cat: 'health', done: false },
+
+    // 화요일 (2)
+    { id: uid(), title: '클라이언트 미팅', date: dk(2), time: '10:00', cat: 'work', done: false },
+    { id: uid(), title: '필라테스 수업', date: dk(2), time: '07:30', cat: 'health', done: true },
+    { id: uid(), title: '디자인 시안 리뷰', date: dk(2), time: '14:00', cat: 'work', done: false },
+    { id: uid(), title: '친구와 카페 약속', date: dk(2), time: '17:30', cat: 'personal', done: false },
+    { id: uid(), title: '저녁 스트레칭', date: dk(2), time: '21:00', cat: 'health', done: false },
+
+    // 수요일 (3)
+    { id: uid(), title: '팀 스탠드업 미팅', date: dk(3), time: '09:30', cat: 'work', done: false },
+    { id: uid(), title: '아침 명상 10분', date: dk(3), time: '07:00', cat: 'health', done: false },
+    { id: uid(), title: '월간 보고서 작성', date: dk(3), time: '11:00', cat: 'work', done: false },
+    { id: uid(), title: '독서 30분', date: dk(3), time: '13:00', cat: 'personal', done: false },
+    { id: uid(), title: '프로젝트 코드 리뷰', date: dk(3), time: '15:00', cat: 'work', done: false },
+    { id: uid(), title: '러닝 4km', date: dk(3), time: '19:30', cat: 'health', done: false },
+    { id: uid(), title: '온라인 강의 수강', date: dk(3), time: '21:00', cat: 'personal', done: false },
+
+    // 목요일 (4)
+    { id: uid(), title: '팀 스탠드업 미팅', date: dk(4), time: '09:30', cat: 'work', done: false },
+    { id: uid(), title: '헬스장 러닝머신', date: dk(4), time: '07:00', cat: 'health', done: false },
+    { id: uid(), title: '기획서 마감 제출', date: dk(4), time: '11:00', cat: 'work', done: false },
+    { id: uid(), title: '신규 UI 디자인 작업', date: dk(4), time: '14:00', cat: 'work', done: false },
+    { id: uid(), title: '정기 건강 검진', date: dk(4), time: '16:00', cat: 'health', done: false },
+    { id: uid(), title: '독서 모임', date: dk(4), time: '19:00', cat: 'personal', done: false },
+
+    // 금요일 (5)
+    { id: uid(), title: '팀 스탠드업 미팅', date: dk(5), time: '09:30', cat: 'work', done: false },
+    { id: uid(), title: '아침 스트레칭', date: dk(5), time: '07:30', cat: 'health', done: false },
+    { id: uid(), title: '주간 업무 정리', date: dk(5), time: '10:00', cat: 'work', done: false },
+    { id: uid(), title: '점심 식사 (혼밥)', date: dk(5), time: '12:30', cat: 'personal', done: false },
+    { id: uid(), title: '디자인 리뷰 최종 확인', date: dk(5), time: '14:30', cat: 'work', done: false },
+    { id: uid(), title: '친구 생일 파티', date: dk(5), time: '18:30', cat: 'personal', done: false },
+    { id: uid(), title: '주간 회고 작성', date: dk(5), time: '21:00', cat: 'personal', done: false },
+
+    // 토요일 (6)
+    { id: uid(), title: '필라테스 수업', date: dk(6), time: '09:00', cat: 'health', done: false },
+    { id: uid(), title: '카페에서 사이드 프로젝트', date: dk(6), time: '11:00', cat: 'personal', done: false },
+    { id: uid(), title: '장보기', date: dk(6), time: '13:30', cat: 'personal', done: false },
+    { id: uid(), title: '자전거 라이딩', date: dk(6), time: '15:00', cat: 'health', done: false },
+    { id: uid(), title: '넷플릭스 드라마', date: dk(6), time: '20:00', cat: 'personal', done: false },
+
+    // 다음 주 월~수 미래 일정도 추가
+    { id: uid(), title: '월간 전략 회의', date: k(7), time: '10:00', cat: 'work', done: false },
+    { id: uid(), title: '헬스 PT 수업', date: k(7), time: '19:00', cat: 'health', done: false },
+    { id: uid(), title: '팀 워크샵 준비', date: k(8), time: '09:00', cat: 'work', done: false },
+    { id: uid(), title: '러닝 6km', date: k(8), time: '07:00', cat: 'health', done: false },
+    { id: uid(), title: '온라인 쇼핑', date: k(8), time: '21:00', cat: 'personal', done: false },
+    { id: uid(), title: '팀 워크샵', date: k(9), time: '10:00', cat: 'work', done: false },
+    { id: uid(), title: '요가 클래스', date: k(9), time: '07:30', cat: 'health', done: false },
+    { id: uid(), title: '친구랑 영화 관람', date: k(9), time: '19:00', cat: 'personal', done: false },
+
+    // 지난 주 일정 (이미 완료된 것들)
+    { id: uid(), title: '이전 주 회의 정리', date: k(-7), time: '10:00', cat: 'work', done: true },
+    { id: uid(), title: '지난 주 러닝 5km', date: k(-6), time: '07:00', cat: 'health', done: true },
+    { id: uid(), title: '지난 주 카페 독서', date: k(-5), time: '14:00', cat: 'personal', done: true },
+    { id: uid(), title: '프로젝트 킥오프', date: k(-4), time: '10:00', cat: 'work', done: true },
+    { id: uid(), title: '필라테스 수업', date: k(-3), time: '09:00', cat: 'health', done: true },
+  ];
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+  return seed;
+}
+
+function saveEvents() { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayKey() {
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+function toKey(y,m,d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function formatKDate(key) {
+  const [y,m,d] = key.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  const dn = ['일','월','화','수','목','금','토'][date.getDay()];
+  if (key === todayKey()) return `오늘 (${m}월 ${d}일)`;
+  return `${m}월 ${d}일 ${dn}요일`;
+}
+
+// ---------- Tabs ----------
+function switchTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-'+tab)?.classList.add('active');
+  document.getElementById('tab-'+tab)?.classList.add('active');
+  if (tab === 'feed') renderFeed();
+}
+
+// ---------- View switch ----------
+function switchView(v) {
+  currentView = v;
+  ['month','week','day'].forEach(x => {
+    document.getElementById('vt-'+x).classList.toggle('active', x===v);
+    document.getElementById('view-'+x).style.display = x===v ? '' : 'none';
+  });
+  document.getElementById('scheduleListSection').style.display = v === 'day' ? 'none' : '';
+  if (v==='month') renderMonth();
+  if (v==='week') renderWeek();
+  if (v==='day') renderDay();
+}
+
+// ---------- Month rendering ----------
+function renderMonth() {
+  const y = viewDate.getFullYear();
+  const m = viewDate.getMonth();
+  document.getElementById('monthLabel').textContent = (m+1) + '월';
+  document.getElementById('yearLabel').textContent = y;
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const prevDays = new Date(y, m, 0).getDate();
+
+  const grid = document.getElementById('daysGrid');
+  grid.innerHTML = '';
+
+  const byDate = {};
+  events.forEach(e => {
+    if (!byDate[e.date]) byDate[e.date] = new Set();
+    byDate[e.date].add(e.cat);
+  });
+
+  let monthEvents = events.filter(e => e.date.startsWith(`${y}-${String(m+1).padStart(2,'0')}`));
+  document.getElementById('stat-work').textContent = monthEvents.filter(e=>e.cat==='work').length;
+  document.getElementById('stat-personal').textContent = monthEvents.filter(e=>e.cat==='personal').length;
+  document.getElementById('stat-health').textContent = monthEvents.filter(e=>e.cat==='health').length;
+
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const day = prevDays - i;
+    grid.appendChild(makeDayCell(day, true, null, null));
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = toKey(y, m, d);
+    const dow = new Date(y, m, d).getDay();
+    grid.appendChild(makeDayCell(d, false, key, byDate[key], dow));
+  }
+  const totalCells = grid.children.length;
+  const trailing = (7 - (totalCells % 7)) % 7;
+  for (let d = 1; d <= trailing; d++) {
+    grid.appendChild(makeDayCell(d, true, null, null));
+  }
+
+  renderScheduleList();
+}
+
+function makeDayCell(day, other, key, cats, dow) {
+  const el = document.createElement('div');
+  el.className = 'day-cell' + (other ? ' other' : '');
+  if (dow === 0) el.classList.add('sun');
+  if (dow === 6) el.classList.add('sat');
+  if (key === todayKey()) el.classList.add('today');
+  if (key === selectedDate) el.classList.add('selected');
+  el.innerHTML = `<span>${day}</span><div class="dots-row"></div>`;
+  if (cats) {
+    const row = el.querySelector('.dots-row');
+    ['work','personal','health'].forEach(c => {
+      if (cats.has(c)) {
+        const dot = document.createElement('div');
+        dot.className = 'dot ' + c;
+        row.appendChild(dot);
+      }
+    });
+  }
+  if (key && !other) {
+    el.addEventListener('click', () => {
+      selectedDate = key;
+      renderMonth();
+    });
+  }
+  return el;
+}
+
+// ---------- Week rendering ----------
+function renderWeek() {
+  const base = new Date(selectedDate);
+  const dow = base.getDay();
+  const sunday = new Date(base); sunday.setDate(base.getDate() - dow);
+
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+  const wdNames = ['일','월','화','수','목','금','토'];
+
+  document.getElementById('monthLabel').textContent = (sunday.getMonth()+1) + '월';
+  document.getElementById('yearLabel').textContent = sunday.getFullYear();
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sunday); d.setDate(sunday.getDate()+i);
+    const key = d.toISOString().slice(0,10);
+    const cats = new Set(events.filter(e=>e.date===key).map(e=>e.cat));
+
+    const col = document.createElement('div');
+    col.className = 'week-col' + (key === selectedDate ? ' selected' : '');
+    col.innerHTML = `<div class="wd">${wdNames[i]}</div><div class="wn">${d.getDate()}</div><div class="wdots"></div>`;
+    const dotsRow = col.querySelector('.wdots');
+    ['work','personal','health'].forEach(c => {
+      if (cats.has(c)) {
+        const dot = document.createElement('div');
+        dot.className = 'dot ' + c;
+        dotsRow.appendChild(dot);
+      }
+    });
+    col.addEventListener('click', () => {
+      selectedDate = key;
+      renderWeek();
+      renderScheduleList();
+    });
+    grid.appendChild(col);
+  }
+
+  renderScheduleList();
+}
+
+// ---------- Day rendering ----------
+function renderDay() {
+  const dayEvents = events.filter(e => e.date === selectedDate)
+    .sort((a,b) => a.time.localeCompare(b.time));
+
+  document.getElementById('dailyDateLabel').textContent = formatKDate(selectedDate);
+  document.getElementById('dailySummary').textContent =
+    dayEvents.length === 0 ? '계획된 일정이 없어요 🌙' : `${dayEvents.length}개의 일정이 기다리고 있어요`;
+
+  const list = document.getElementById('hourList');
+  list.innerHTML = '';
+  for (let h = 6; h <= 23; h++) {
+    const row = document.createElement('div');
+    row.className = 'hour-row';
+    const label = String(h).padStart(2,'0') + ':00';
+    row.innerHTML = `<div class="hour-label">${label}</div><div class="hour-body"></div>`;
+    const body = row.querySelector('.hour-body');
+    const matches = dayEvents.filter(e => parseInt(e.time.slice(0,2)) === h);
+    matches.forEach(e => {
+      const item = document.createElement('div');
+      item.className = 'hour-item';
+      item.setAttribute('data-cat', e.cat);
+      item.innerHTML = `<div>${escapeHtml(e.title)}</div><div class="ht">${e.time} · ${catLabel(e.cat)}</div>`;
+      item.addEventListener('click', () => openModal(e.id));
+      body.appendChild(item);
+    });
+    list.appendChild(row);
+  }
+}
+
+function catLabel(c) { return c==='work'?'업무':c==='health'?'건강':'개인'; }
+
+// ---------- Schedule list (under month/week) ----------
+function renderScheduleList() {
+  document.getElementById('selectedDateLabel').textContent = formatKDate(selectedDate);
+  let dayEvents = events.filter(e => e.date === selectedDate);
+  if (currentCat !== 'all') dayEvents = dayEvents.filter(e => e.cat === currentCat);
+  dayEvents.sort((a,b) => a.time.localeCompare(b.time));
+
+  document.getElementById('selectedDateCount').textContent = dayEvents.length;
+
+  const wrap = document.getElementById('cardsWrap');
+  wrap.innerHTML = '';
+  if (dayEvents.length === 0) {
+    wrap.innerHTML = `<div class="empty"><span class="emoji">🌷</span>계획된 일정이 없어요<br><span style="font-size:11px;opacity:0.7">+ 버튼으로 새 일정을 추가해볼까요</span></div>`;
+    return;
+  }
+  dayEvents.forEach(e => wrap.appendChild(makeCard(e)));
+}
+
+function makeCard(e) {
+  const card = document.createElement('div');
+  card.className = 's-card';
+  card.setAttribute('data-cat', e.cat);
+  card.innerHTML = `
+    <div class="s-check ${e.done?'checked':''}" data-id="${e.id}"></div>
+    <div class="s-body">
+      <div class="s-time">${e.time}</div>
+      <div class="s-title ${e.done?'done':''}">${escapeHtml(e.title)}</div>
+      <div class="s-meta"><span class="mini-chip">${catLabel(e.cat)}</span></div>
+    </div>
+  `;
+  card.querySelector('.s-check').addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    toggleDone(e.id);
+  });
+  card.addEventListener('click', () => openModal(e.id));
+  return card;
+}
+
+function toggleDone(id) {
+  const e = events.find(x => x.id === id);
+  if (!e) return;
+  e.done = !e.done;
+  saveEvents();
+  if (currentView === 'month') renderMonth();
+  else if (currentView === 'week') renderWeek();
+  else renderDay();
+  if (document.getElementById('screen-feed').classList.contains('active')) renderFeed();
+}
+
+// ---------- Filter ----------
+function filterCat(cat, el) {
+  currentCat = cat;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderScheduleList();
+}
+
+// ---------- Nav ----------
+function prevMonth() {
+  if (currentView === 'week') {
+    const d = new Date(selectedDate); d.setDate(d.getDate()-7);
+    selectedDate = d.toISOString().slice(0,10);
+    renderWeek();
+  } else if (currentView === 'day') {
+    const d = new Date(selectedDate); d.setDate(d.getDate()-1);
+    selectedDate = d.toISOString().slice(0,10);
+    renderDay();
+  } else {
+    viewDate.setMonth(viewDate.getMonth() - 1);
+    renderMonth();
+  }
+}
+function nextMonth() {
+  if (currentView === 'week') {
+    const d = new Date(selectedDate); d.setDate(d.getDate()+7);
+    selectedDate = d.toISOString().slice(0,10);
+    renderWeek();
+  } else if (currentView === 'day') {
+    const d = new Date(selectedDate); d.setDate(d.getDate()+1);
+    selectedDate = d.toISOString().slice(0,10);
+    renderDay();
+  } else {
+    viewDate.setMonth(viewDate.getMonth() + 1);
+    renderMonth();
+  }
+}
+function goToday() {
+  selectedDate = todayKey();
+  viewDate = new Date();
+  if (currentView === 'month') renderMonth();
+  else if (currentView === 'week') renderWeek();
+  else renderDay();
+}
+
+// ---------- Modal ----------
+function openModal(eid) {
+  editingId = eid || null;
+  const modal = document.getElementById('modal');
+  if (eid) {
+    const e = events.find(x => x.id === eid);
+    document.getElementById('modalTitle').textContent = '일정 편집';
+    document.getElementById('modalSub').textContent = '조금 다듬어볼까요';
+    document.getElementById('f-title').value = e.title;
+    document.getElementById('f-date').value = e.date;
+    document.getElementById('f-time').value = e.time;
+    pickCat(e.cat);
+    document.getElementById('btnDelete').style.display = '';
+  } else {
+    document.getElementById('modalTitle').textContent = '새 일정 추가';
+    document.getElementById('modalSub').textContent = '하루를 조금 더 정돈해볼까요';
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-date').value = selectedDate;
+    document.getElementById('f-time').value = '09:00';
+    pickCat('personal');
+    document.getElementById('btnDelete').style.display = 'none';
+  }
+  modal.classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  editingId = null;
+}
+function pickCat(cat, el) {
+  pickedCat = cat;
+  document.querySelectorAll('.cat-opt').forEach(o => {
+    o.classList.remove('sel-work','sel-personal','sel-health');
+  });
+  const target = el || document.querySelector(`.cat-opt[data-cat="${cat}"]`);
+  if (target) target.classList.add('sel-' + cat);
+}
+function saveEvent() {
+  const title = document.getElementById('f-title').value.trim();
+  const date = document.getElementById('f-date').value;
+  const time = document.getElementById('f-time').value;
+  if (!title) { document.getElementById('f-title').focus(); return; }
+  if (!date || !time) return;
+
+  if (editingId) {
+    const e = events.find(x => x.id === editingId);
+    e.title = title; e.date = date; e.time = time; e.cat = pickedCat;
+  } else {
+    events.push({ id: uid(), title, date, time, cat: pickedCat, done: false });
+  }
+  saveEvents();
+  selectedDate = date;
+  closeModal();
+  refreshAll();
+}
+function deleteEvent() {
+  if (!editingId) return;
+  events = events.filter(e => e.id !== editingId);
+  saveEvents();
+  closeModal();
+  refreshAll();
+}
+function refreshAll() {
+  if (currentView === 'month') renderMonth();
+  else if (currentView === 'week') renderWeek();
+  else renderDay();
+  if (document.getElementById('screen-feed').classList.contains('active')) renderFeed();
+}
+
+// ---------- Feed ----------
+function switchFeed(f) {
+  feedFilter = f;
+  ['upcoming','done','all'].forEach(x => {
+    document.getElementById('ft-'+x).classList.toggle('active', x===f);
+  });
+  renderFeed();
+}
+function renderFeed() {
+  let list = [...events];
+  const today = todayKey();
+  if (feedFilter === 'upcoming') list = list.filter(e => !e.done && e.date >= today);
+  else if (feedFilter === 'done') list = list.filter(e => e.done);
+  list.sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+
+  const wrap = document.getElementById('feedWrap');
+  wrap.innerHTML = '';
+  if (list.length === 0) {
+    wrap.innerHTML = `<div class="empty"><span class="emoji">🌙</span>해당하는 일정이 없어요</div>`;
+    return;
+  }
+  let lastDate = '';
+  list.forEach(e => {
+    if (e.date !== lastDate) {
+      const head = document.createElement('div');
+      head.style.cssText = 'font-size:12px;font-weight:700;color:var(--color-primary-deep);padding:8px 4px 4px;';
+      head.textContent = formatKDate(e.date);
+      wrap.appendChild(head);
+      lastDate = e.date;
+    }
+    wrap.appendChild(makeCard(e));
+  });
+}
+
+// ---------- Search ----------
+function runSearch() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const box = document.getElementById('searchResults');
+  if (!q) {
+    box.innerHTML = `<div class="search-empty"><span class="emoji">🌙</span>단어를 입력하면 일정을 찾아드릴게요</div>`;
+    return;
+  }
+  const matches = events.filter(e => e.title.toLowerCase().includes(q))
+    .sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+  if (matches.length === 0) {
+    box.innerHTML = `<div class="search-empty"><span class="emoji">🔍</span>"${escapeHtml(q)}"에 해당하는 일정이 없어요</div>`;
+    return;
+  }
+  box.innerHTML = '';
+  matches.forEach(e => {
+    const card = makeCard(e);
+    const meta = card.querySelector('.s-meta');
+    const dateChip = document.createElement('span');
+    dateChip.className = 'mini-chip';
+    dateChip.textContent = formatKDate(e.date);
+    meta.appendChild(dateChip);
+    box.appendChild(card);
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- Init ----------
+renderMonth();
+</script>
+</body>
+</html>
